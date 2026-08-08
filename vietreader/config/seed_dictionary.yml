@@ -1,0 +1,253 @@
+# Seed dictionary for a fresh install: 65 entries across all 3 policies (REPLACE/KEEP/ASK),
+# wuxia/xianxia-flavored vocabulary consistent with the terms used as examples throughout
+# AGENT_WORK_ORDER_VietReader.md ("lão giả", "thiếu niên", "linh lực", "đạo hữu", ...).
+# Load with: python scripts/seed_dictionary.py
+entries:
+  # --- REPLACE (35) ---
+  - surface: "lão giả"
+    display: "lão giả"
+    policy: replace
+    replacement: "ông lão"
+  - surface: "thiếu niên"
+    display: "thiếu niên"
+    policy: replace
+    replacement: "cậu trai"
+  - surface: "cô nương"
+    display: "cô nương"
+    policy: replace
+    replacement: "cô gái"
+  - surface: "tiền bối"
+    display: "tiền bối"
+    policy: replace
+    replacement: "bậc tiền bối"
+  - surface: "hài tử"
+    display: "hài tử"
+    policy: replace
+    replacement: "đứa trẻ"
+  - surface: "công tử"
+    display: "công tử"
+    policy: replace
+    replacement: "cậu chủ"
+  - surface: "nương tử"
+    display: "nương tử"
+    policy: replace
+    replacement: "nàng"
+  - surface: "lão phu"
+    display: "lão phu"
+    policy: replace
+    replacement: "ta"
+  - surface: "tiểu tử"
+    display: "tiểu tử"
+    policy: replace
+    replacement: "thằng nhóc"
+  - surface: "lão nhân"
+    display: "lão nhân"
+    policy: replace
+    replacement: "ông già"
+  - surface: "thiếu gia"
+    display: "thiếu gia"
+    policy: replace
+    replacement: "cậu chủ trẻ"
+  - surface: "phu nhân"
+    display: "phu nhân"
+    policy: replace
+    replacement: "bà chủ"
+  - surface: "lão bà"
+    display: "lão bà"
+    policy: replace
+    replacement: "bà lão"
+  - surface: "tiểu nương tử"
+    display: "tiểu nương tử"
+    policy: replace
+    replacement: "cô bé"
+  - surface: "đại nhân"
+    display: "đại nhân"
+    policy: replace
+    replacement: "ngài"
+  - surface: "tiểu tôn"
+    display: "tiểu tôn"
+    policy: replace
+    replacement: "cháu nhỏ"
+  - surface: "sư phụ"
+    display: "sư phụ"
+    policy: replace
+    replacement: "thầy"
+  - surface: "sư mẫu"
+    display: "sư mẫu"
+    policy: replace
+    replacement: "cô"
+  - surface: "đồ đệ"
+    display: "đồ đệ"
+    policy: replace
+    replacement: "học trò"
+  - surface: "sư huynh"
+    display: "sư huynh"
+    policy: replace
+    replacement: "đại ca"
+  - surface: "sư tỷ"
+    display: "sư tỷ"
+    policy: replace
+    replacement: "chị cả"
+  - surface: "sư đệ"
+    display: "sư đệ"
+    policy: replace
+    replacement: "tiểu đệ"
+  - surface: "sư muội"
+    display: "sư muội"
+    policy: replace
+    replacement: "tiểu muội"
+  - surface: "lệnh tôn"
+    display: "lệnh tôn"
+    policy: replace
+    replacement: "cha ngài"
+  - surface: "lệnh đường"
+    display: "lệnh đường"
+    policy: replace
+    replacement: "mẹ ngài"
+  - surface: "tiểu thư"
+    display: "tiểu thư"
+    policy: replace
+    replacement: "cô chủ"
+  - surface: "quản gia"
+    display: "quản gia"
+    policy: replace
+    replacement: "người quản lý"
+  - surface: "hạ nhân"
+    display: "hạ nhân"
+    policy: replace
+    replacement: "người hầu"
+  - surface: "lão gia"
+    display: "lão gia"
+    policy: replace
+    replacement: "ông chủ"
+  - surface: "phu quân"
+    display: "phu quân"
+    policy: replace
+    replacement: "chồng"
+  - surface: "lệnh ái"
+    display: "lệnh ái"
+    policy: replace
+    replacement: "con gái ngài"
+  - surface: "tiện nội"
+    display: "tiện nội"
+    policy: replace
+    replacement: "vợ tôi"
+  - surface: "ngu huynh"
+    display: "ngu huynh"
+    policy: replace
+    replacement: "anh đây"
+  - surface: "tiểu điệt"
+    display: "tiểu điệt"
+    policy: replace
+    replacement: "cháu"
+  - surface: "lão thân"
+    display: "lão thân"
+    policy: replace
+    replacement: "ta"
+  # --- KEEP (15): world-building / cultivation terms, never translated ---
+  - surface: "linh lực"
+    display: "linh lực"
+    policy: keep
+  - surface: "đan dược"
+    display: "đan dược"
+    policy: keep
+  - surface: "tông môn"
+    display: "tông môn"
+    policy: keep
+  - surface: "linh khí"
+    display: "linh khí"
+    policy: keep
+  - surface: "đan điền"
+    display: "đan điền"
+    policy: keep
+  - surface: "kim đan"
+    display: "kim đan"
+    policy: keep
+  - surface: "nguyên anh"
+    display: "nguyên anh"
+    policy: keep
+  - surface: "độ kiếp"
+    display: "độ kiếp"
+    policy: keep
+  - surface: "tu vi"
+    display: "tu vi"
+    policy: keep
+  - surface: "pháp bảo"
+    display: "pháp bảo"
+    policy: keep
+  - surface: "linh thạch"
+    display: "linh thạch"
+    policy: keep
+  - surface: "tiên giới"
+    display: "tiên giới"
+    policy: keep
+  - surface: "ma giới"
+    display: "ma giới"
+    policy: keep
+  - surface: "yêu thú"
+    display: "yêu thú"
+    policy: keep
+  - surface: "huyền giới"
+    display: "huyền giới"
+    policy: keep
+  # --- ASK (15): ambiguous forms of address, need LLM context ---
+  - surface: "đạo hữu"
+    display: "đạo hữu"
+    policy: ask
+    candidates: ["đạo hữu", "bạn", "vị này"]
+  - surface: "huynh đài"
+    display: "huynh đài"
+    policy: ask
+    candidates: ["huynh đài", "anh bạn", "vị huynh đệ"]
+  - surface: "tại hạ"
+    display: "tại hạ"
+    policy: ask
+    candidates: ["tại hạ", "tôi", "ta"]
+  - surface: "các hạ"
+    display: "các hạ"
+    policy: ask
+    candidates: ["các hạ", "ngài", "bạn"]
+  - surface: "bổn tọa"
+    display: "bổn tọa"
+    policy: ask
+    candidates: ["bổn tọa", "ta", "tôi"]
+  - surface: "bần đạo"
+    display: "bần đạo"
+    policy: ask
+    candidates: ["bần đạo", "ta", "bần tăng"]
+  - surface: "lão nạp"
+    display: "lão nạp"
+    policy: ask
+    candidates: ["lão nạp", "ta", "bần tăng"]
+  - surface: "tiểu sinh"
+    display: "tiểu sinh"
+    policy: ask
+    candidates: ["tiểu sinh", "tôi", "ta"]
+  - surface: "muội muội"
+    display: "muội muội"
+    policy: ask
+    candidates: ["muội muội", "em", "cô bé"]
+  - surface: "ca ca"
+    display: "ca ca"
+    policy: ask
+    candidates: ["ca ca", "anh", "huynh"]
+  - surface: "tỷ tỷ"
+    display: "tỷ tỷ"
+    policy: ask
+    candidates: ["tỷ tỷ", "chị", "chị gái"]
+  - surface: "đệ đệ"
+    display: "đệ đệ"
+    policy: ask
+    candidates: ["đệ đệ", "em", "cậu em"]
+  - surface: "lão suy"
+    display: "lão suy"
+    policy: ask
+    candidates: ["lão suy", "ta già rồi", "lão đây"]
+  - surface: "bần ni"
+    display: "bần ni"
+    policy: ask
+    candidates: ["bần ni", "ta", "sư thái"]
+  - surface: "quý khách"
+    display: "quý khách"
+    policy: ask
+    candidates: ["quý khách", "vị khách", "ngài"]
