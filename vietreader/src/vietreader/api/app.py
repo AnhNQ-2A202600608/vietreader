@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from vietreader.api.deps import AppState
 from vietreader.api.errors import register_exception_handlers
-from vietreader.api.routes import chapters, dictionary, health, position
+from vietreader.api.routes import chapters, dictionary, health, position, web
 from vietreader.db.base import create_db_engine, create_session_factory
 from vietreader.db.models import Base
 from vietreader.extraction.fetcher import Fetcher
@@ -40,10 +43,14 @@ def create_app(settings: Settings | None = None, provider: LLMProvider | None = 
     app = FastAPI(title="VietReader API", version="0.1.0")
     app.state.app_state = app_state
 
+    static_dir = Path(__file__).resolve().parents[1] / "web" / "static"
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
     app.include_router(health.router)
     app.include_router(chapters.router)
     app.include_router(dictionary.router)
     app.include_router(position.router)
+    app.include_router(web.router)
 
     register_exception_handlers(app)
     return app

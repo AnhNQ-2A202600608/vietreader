@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}VietReader — Đọc{% endblock %}
+{% block content %}
+<h1>Đọc chương mới</h1>
+
+<form hx-post="/read" hx-target="#reader-container" hx-swap="innerHTML" hx-indicator="#loading">
+  <div class="field-row">
+    <label for="url">URL chương</label>
+    <input type="url" id="url" name="url" placeholder="https://...">
+  </div>
+  <p style="color: var(--muted); margin: 0.5rem 0;">— hoặc —</p>
+  <div class="field-row">
+    <label for="raw_text">Dán nội dung chương trực tiếp</label>
+    <textarea id="raw_text" name="raw_text" placeholder="Dán nội dung ở đây..."></textarea>
+  </div>
+  <div class="field-row">
+    <label for="title">Tiêu đề (tuỳ chọn)</label>
+    <input type="text" id="title" name="title">
+  </div>
+  <button type="submit" class="primary">Đọc</button>
+  <span id="loading" class="htmx-indicator">Đang xử lý...</span>
+</form>
+
+<div id="reader-container"></div>
+{% endblock %}

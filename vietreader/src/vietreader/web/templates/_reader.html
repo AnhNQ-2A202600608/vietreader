@@ -1,0 +1,47 @@
+<div data-series-key="{{ series_key }}" data-url="{{ url or '' }}" x-data="{ highlight: true, showOriginal: false }">
+  {% if status == "validation_failed" %}
+  <div class="banner">
+    ⚠ Không thể xử lý an toàn chương này (vi phạm: {{ violations | join(", ") }}). Hiển thị bản gốc chưa qua xử lý.
+  </div>
+  {% endif %}
+
+  <h2>{{ title or "(không có tiêu đề)" }}</h2>
+
+  <div class="toolbar">
+    <button type="button" @click="highlight = !highlight" :class="{ primary: highlight }">
+      Tô màu từ đã thay
+    </button>
+    <button type="button" @click="showOriginal = !showOriginal">
+      <span x-text="showOriginal ? 'Ẩn bản gốc' : 'Xem bản gốc'"></span>
+    </button>
+    {% if next_url %}
+    <button type="button" class="primary"
+      hx-post="/read" hx-vals='{"url": "{{ next_url }}"}'
+      hx-target="#reader-container" hx-swap="innerHTML">
+      Chương sau →
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="stats-bar">
+    <span>Số từ đã thay: {{ stats.replace_count + stats.ask_count }}</span>
+    <span>Số lần gọi LLM: {{ stats.llm_calls }}</span>
+    <span>Cache LLM hit: {{ stats.llm_cache_hits }}</span>
+    <span>{{ "Từ cache" if stats.from_cache else "Xử lý mới" }} ({{ "%.0f"|format(stats.duration_ms) }}ms)</span>
+  </div>
+
+  <div class="reader-text" :class="{ 'no-highlight': !highlight }">
+    {% for para_html in paragraphs_html %}
+    <p>{{ para_html | safe }}</p>
+    {% endfor %}
+  </div>
+
+  <template x-if="showOriginal">
+    <div class="diff-original">
+      <h3>Bản gốc</h3>
+      {% for raw_para in raw_paragraphs %}
+      <p>{{ raw_para }}</p>
+      {% endfor %}
+    </div>
+  </template>
+</div>

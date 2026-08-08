@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from vietreader.core.applier import output_positions
 from vietreader.core.casing import apply_casing
 from vietreader.core.dictionary import CompiledDictionary
 from vietreader.core.matcher import match
@@ -20,18 +21,11 @@ def reconstruct(output_paragraphs: list[str], changelog: list[Change]) -> list[s
     result: list[str] = []
     for index, out_para in enumerate(output_paragraphs):
         changes = sorted(by_para.get(index, []), key=lambda c: c.start)
-
-        positioned: list[tuple[int, int, str]] = []
-        shift = 0
-        for change in changes:
-            out_start = change.start + shift
-            out_end = out_start + len(change.replacement)
-            positioned.append((out_start, out_end, change.original))
-            shift += len(change.replacement) - (change.end - change.start)
+        positioned = output_positions(changes)
 
         text = out_para
-        for out_start, out_end, original in reversed(positioned):
-            text = text[:out_start] + original + text[out_end:]
+        for out_start, out_end, change in reversed(positioned):
+            text = text[:out_start] + change.original + text[out_end:]
         result.append(text)
 
     return result

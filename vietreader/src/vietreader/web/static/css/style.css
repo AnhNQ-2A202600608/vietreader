@@ -1,0 +1,224 @@
+:root {
+  --bg: #fbfaf7;
+  --fg: #1d1b16;
+  --muted: #6b6559;
+  --border: #ddd6c9;
+  --accent: #8a5a34;
+  --highlight-replace: #fde9c8;
+  --highlight-llm: #dbe9fd;
+  --highlight-keep: #ddf5e0;
+  --banner-bg: #fde0e0;
+  --banner-fg: #7a1f1f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1a17;
+    --fg: #ece7db;
+    --muted: #a39d8c;
+    --border: #3a372e;
+    --accent: #d9a05b;
+    --highlight-replace: #4a3c1f;
+    --highlight-llm: #1f3348;
+    --highlight-keep: #1f3a24;
+    --banner-bg: #4a1f1f;
+    --banner-fg: #f5c6c6;
+  }
+}
+
+html[data-theme="dark"] {
+  --bg: #1b1a17;
+  --fg: #ece7db;
+  --muted: #a39d8c;
+  --border: #3a372e;
+  --accent: #d9a05b;
+  --highlight-replace: #4a3c1f;
+  --highlight-llm: #1f3348;
+  --highlight-keep: #1f3a24;
+  --banner-bg: #4a1f1f;
+  --banner-fg: #f5c6c6;
+}
+
+html[data-theme="light"] {
+  --bg: #fbfaf7;
+  --fg: #1d1b16;
+  --muted: #6b6559;
+  --border: #ddd6c9;
+  --accent: #8a5a34;
+  --highlight-replace: #fde9c8;
+  --highlight-llm: #dbe9fd;
+  --highlight-keep: #ddf5e0;
+  --banner-bg: #fde0e0;
+  --banner-fg: #7a1f1f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, "Segoe UI", sans-serif;
+}
+
+header.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+header.site-header nav a {
+  color: var(--fg);
+  text-decoration: none;
+  margin-right: 1rem;
+  font-size: 0.95rem;
+}
+
+header.site-header nav a:hover {
+  color: var(--accent);
+}
+
+main {
+  max-width: 70ch;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.wide {
+  max-width: 900px;
+}
+
+h1, h2, h3 {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.reader-text {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+  line-height: 1.8;
+}
+
+.reader-text p {
+  margin: 0 0 1.2em;
+}
+
+.reader-text .changed {
+  border-bottom: 2px dotted var(--accent);
+  cursor: help;
+}
+
+.reader-text.no-highlight .changed {
+  border-bottom: none;
+}
+
+.reader-text .changed[data-source="replace"] {
+  background: var(--highlight-replace);
+}
+
+.reader-text .changed[data-source="llm"] {
+  background: var(--highlight-llm);
+}
+
+.reader-text.no-highlight .changed[data-source] {
+  background: transparent;
+}
+
+.banner {
+  background: var(--banner-bg);
+  color: var(--banner-fg);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.stats-bar {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+button, .btn {
+  font: inherit;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+input[type="text"], input[type="url"], textarea, select {
+  font: inherit;
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+textarea {
+  min-height: 10rem;
+  resize: vertical;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.quick-add-popup {
+  position: absolute;
+  z-index: 50;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 0.4rem;
+}
+
+.diff-original {
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.field-row {
+  margin-bottom: 0.75rem;
+}
+
+.field-row label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}

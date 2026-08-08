@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Từ điển — VietReader{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+<h1>Quản lý từ điển</h1>
+
+<form class="toolbar"
+  hx-get="/dictionary/table" hx-target="#dict-table-wrapper" hx-swap="innerHTML" hx-trigger="submit, change">
+  <select name="policy">
+    <option value="">Tất cả policy</option>
+    <option value="keep">KEEP</option>
+    <option value="replace">REPLACE</option>
+    <option value="ask">ASK</option>
+  </select>
+  <input type="text" name="search" placeholder="Tìm surface...">
+  <button type="submit">Lọc</button>
+</form>
+
+<h2>Thêm entry mới</h2>
+<form class="toolbar"
+  hx-post="/dictionary/create" hx-target="#dict-table-wrapper" hx-swap="innerHTML">
+  <input type="text" name="surface" placeholder="surface" required>
+  <input type="text" name="display" placeholder="display (mặc định = surface)">
+  <select name="policy">
+    <option value="keep">KEEP</option>
+    <option value="replace">REPLACE</option>
+    <option value="ask">ASK</option>
+  </select>
+  <input type="text" name="replacement" placeholder="replacement (REPLACE)">
+  <input type="text" name="candidates" placeholder="candidates, phân cách bằng dấu phẩy (ASK)">
+  <button type="submit" class="primary">Thêm</button>
+</form>
+
+<h2>Import / Export</h2>
+<div class="toolbar">
+  <a class="btn" href="/api/dictionary/export" target="_blank">Export JSON</a>
+</div>
+<form class="toolbar" hx-post="/dictionary/import-csv" hx-target="#dict-table-wrapper" hx-swap="innerHTML"
+  hx-encoding="multipart/form-data">
+  <input type="file" name="csv_file" accept=".csv">
+  <button type="submit">Import CSV</button>
+</form>
+
+<div id="dict-table-wrapper">
+  {% include "_dictionary_table.html" %}
+</div>
+{% endblock %}

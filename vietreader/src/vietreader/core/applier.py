@@ -36,3 +36,17 @@ def _apply_to_paragraph(paragraph: str, changes: list[Change]) -> str:
         cursor = change.end
     parts.append(paragraph[cursor:])
     return "".join(parts)
+
+
+def output_positions(changes_sorted_by_start: list[Change]) -> list[tuple[int, int, Change]]:
+    """For one paragraph's changes (sorted by original `start`), compute each change's
+    (start, end) position in the OUTPUT text. Shared by validator.reconstruct() (reversal)
+    and the reader UI (highlighting) so the offset-shift math lives in exactly one place."""
+    positioned: list[tuple[int, int, Change]] = []
+    shift = 0
+    for change in changes_sorted_by_start:
+        out_start = change.start + shift
+        out_end = out_start + len(change.replacement)
+        positioned.append((out_start, out_end, change))
+        shift += len(change.replacement) - (change.end - change.start)
+    return positioned

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Cài đặt — VietReader{% endblock %}
+{% block content %}
+<h1>Cài đặt</h1>
+<p style="color: var(--muted);">Chỉ đọc — sửa qua biến môi trường (<code>config/settings.example.env</code>).</p>
+
+<table>
+  <tbody>
+    <tr><th>LLM provider</th><td>{{ settings.llm_provider }}</td></tr>
+    <tr><th>Model</th><td>{{ settings.llm_model }}</td></tr>
+    <tr><th>Prompt version</th><td>{{ prompt_version }}</td></tr>
+    <tr><th>Temperature</th><td>{{ settings.llm_temperature }}</td></tr>
+    <tr><th>Batch size</th><td>{{ settings.llm_batch_size }}</td></tr>
+    <tr><th>Max retries (LLM)</th><td>{{ settings.llm_max_retries }}</td></tr>
+    <tr><th>User-Agent (fetch)</th><td>{{ settings.fetch_user_agent }}</td></tr>
+    <tr><th>Delay giữa request (giây)</th><td>{{ settings.fetch_delay_seconds }}</td></tr>
+    <tr><th>Timeout fetch (giây)</th><td>{{ settings.fetch_timeout_seconds }}</td></tr>
+  </tbody>
+</table>
+{% endblock %}

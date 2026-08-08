@@ -1,0 +1,47 @@
+<table id="dict-table">
+  <thead>
+    <tr>
+      <th>Surface</th>
+      <th>Policy</th>
+      <th>Replacement / Candidates</th>
+      <th>Priority</th>
+      <th>Enabled</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entries %}
+    <tr id="dict-row-{{ e.id }}">
+      <td>{{ e.display }}</td>
+      <td>{{ e.policy.value }}</td>
+      <td>
+        {% if e.policy.value == "replace" %}{{ e.replacement }}
+        {% elif e.policy.value == "ask" %}{{ e.candidates | join(", ") }}
+        {% else %}—{% endif %}
+      </td>
+      <td>
+        <form hx-patch="/dictionary/{{ e.id }}" hx-target="#dict-table-wrapper" hx-swap="innerHTML"
+          style="display:flex; gap:0.3rem; align-items:center;">
+          <input type="number" name="priority" value="{{ e.priority }}" style="width:4rem;">
+          <label>
+            <input type="checkbox" name="enabled" value="true" {% if e.enabled %}checked{% endif %}>
+            bật
+          </label>
+          <button type="submit">Lưu</button>
+        </form>
+      </td>
+      <td>{{ "✓" if e.enabled else "✗" }}</td>
+      <td>
+        <button type="button"
+          hx-delete="/dictionary/{{ e.id }}"
+          hx-target="#dict-table-wrapper" hx-swap="innerHTML"
+          hx-confirm="Xoá {{ e.display }}?">
+          Xoá
+        </button>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">Chưa có entry nào.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

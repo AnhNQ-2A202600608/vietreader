@@ -553,3 +553,110 @@ Không có ngoài phần đã nêu ở Assumptions.
 Không có.
 
 ## Ready for gate? YES
+
+---
+
+# PHASE 7 REPORT — Reader UI
+
+## Deliverables
+- `web/static/js/htmx.min.js`, `web/static/js/alpine.min.js` — vendor hoá (tải 1 lần, lưu
+  trong repo) thay vì CDN, để app chạy được hoàn toàn offline đúng tinh thần "ứng dụng cá nhân"
+- `web/static/css/style.css` (224 dòng) — serif font cho reader-text, line-height 1.8,
+  max-width 70ch (qua `<main>`), dark mode (media query + toggle `data-theme`)
+- `web/static/js/app.js` (132 dòng) — popup quick-add khi bôi đen văn bản (KEEP/REPLACE/ASK),
+  lưu vị trí đọc qua API với throttle 3s (KHÔNG dùng localStorage cho dữ liệu quan trọng)
+- `web/rendering.py` (36 dòng) — `render_paragraphs_html()`: bọc span đã đổi bằng
+  `<span class="changed" data-original="...">` để hỗ trợ toggle highlight + hover xem gốc
+- `web/templates/`: `base.html`, `home.html`, `_reader.html` (partial dùng chung cho HTMX
+  swap và trang `reader.html` đầy đủ), `dictionary.html` + `_dictionary_table.html`,
+  `settings.html`
+- `api/routes/web.py` (232 dòng) — toàn bộ route server-rendered: `/`, `POST /read`,
+  `GET /reader/{id}`, `GET/POST/PATCH/DELETE /dictionary...`, `POST /dictionary/import-csv`,
+  `GET /settings`; mount `StaticFiles` tại `/static` (trong `api/app.py`)
+- Bổ sung `core/applier.output_positions()` (dùng chung bởi `validator.reconstruct()` và
+  `web/rendering.py`, tránh trùng lặp phép toán shift offset)
+- `tests/integration/test_web.py` (132 dòng, 11 test) — smoke test toàn bộ route + test
+  end-to-end quick-add thật (thêm entry → gọi lại `/read` → thấy thay đổi trong HTML trả về)
+
+## Commands Run
+
+```
+$ .venv/Scripts/python.exe -m ruff check src tests
+All checks passed!
+
+$ .venv/Scripts/python.exe -m mypy src/vietreader/core
+Success: no issues found in 9 source files
+
+$ .venv/Scripts/python.exe -m pytest -q --cov=vietreader --cov-report=term-missing
+........................................................................ [ 66%]
+....................................                                     [100%]
+TOTAL   1468 stmts, 36 miss, 98%
+108 passed, 1 deselected in 12.99s
+
+# Chạy dev server thật (không qua make, xem Phase 0 deviation) và gọi qua HTTP thật:
+$ VIETREADER_LLM_API_KEY=dummy .venv/Scripts/python.exe -m uvicorn vietreader.api.app:app --host 127.0.0.1 --port 8123
+INFO:     Application startup complete.
+
+$ curl http://127.0.0.1:8123/api/health
+{"status":"ok"}
+$ curl -o /dev/null -w "home: %{http_code}\n" http://127.0.0.1:8123/          -> home: 200
+$ curl -o /dev/null -w "dictionary: %{http_code}\n" http://127.0.0.1:8123/dictionary  -> 200
+$ curl -o /dev/null -w "settings: %{http_code}\n" http://127.0.0.1:8123/settings      -> 200
+$ curl -o /dev/null -w "docs: %{http_code}\n" http://127.0.0.1:8123/docs              -> 200
+
+# POST /read qua httpx (UTF-8 đúng — curl qua Git Bash Windows làm hỏng dấu tiếng Việt trong
+# tham số dòng lệnh, đây là vấn đề của shell/terminal, không phải server; xác nhận lại bằng
+# httpx.post trực tiếp):
+$ .venv/Scripts/python.exe -c "import httpx; r = httpx.post('http://127.0.0.1:8123/read',
+  data={'raw_text': 'Lão giả nhìn thiếu niên.', 'title': 'Chương thử'}); print(r.text)"
+<h2>Chương thử</h2>
+...
+<p>Lão giả nhìn thiếu niên.</p>
+...
+```
+
+## Acceptance Check
+- [x] Chạy server thật (`uvicorn`, không qua `make run` — xem Phase 0 deviation), mô tả từng
+      màn hình bằng output thật ở trên — PASS. **Không chụp được screenshot ảnh** (môi trường
+      agent không có trình duyệt/khả năng chụp màn hình) — đã xác minh bằng HTTP request thật
+      tới server thật thay thế, xem Assumptions.
+- [x] Test smoke: mỗi route trả 200 và render đúng template — PASS (11 test, mọi route
+      GET/POST/PATCH/DELETE dưới `/`, `/read`, `/reader/{id}`, `/dictionary*`, `/settings`,
+      `/static/*`)
+- [x] Quick-add hoạt động end-to-end: thêm entry → reload chương → thấy thay đổi (chứng minh
+      bằng test integration) — PASS (`test_quick_add_end_to_end_reflected_on_reprocess`: gọi
+      `/read` trước khi thêm entry (không có thay đổi) → `POST /api/dictionary/quick-add` →
+      gọi lại `/read` với cùng raw_text → thấy `<span class="changed">` với text đã thay,
+      casing Title-case chuyển đúng "ông lão" → "Ông lão")
+
+## Assumptions
+- **Không có trình duyệt/công cụ chụp màn hình trong môi trường agent** — không thể cung cấp
+  ảnh chụp màn hình thật như acceptance yêu cầu literal ("screenshot"). Đã thay thế bằng: (a)
+  chạy server thật qua `uvicorn`, (b) gọi từng route bằng HTTP client thật (`curl`/`httpx`) và
+  dán nguyên văn HTML trả về, (c) 11 test tự động hoá dùng `httpx.AsyncClient` + `ASGITransport`
+  (không phải browser, nhưng cùng tầng HTTP thật, không mock). Đây là bằng chứng tốt nhất có thể
+  tạo ra trong môi trường hiện tại mà không bịa kết quả.
+- **HTMX + Alpine.js được vendor hoá (tải về lưu trong repo)** thay vì nhúng qua CDN — spec chỉ
+  nói "không cần build toolchain", không cấm/bắt CDN; vendor hoá phù hợp hơn với tinh thần "ứng
+  dụng cá nhân, không phụ thuộc mạng khi đọc" đã nêu trong §6 risk table.
+- **Inline edit trong Dictionary manager chỉ áp dụng cho `priority` và `enabled`** — sửa
+  `surface`/`policy`/`replacement`/`candidates` yêu cầu xoá rồi tạo lại. Spec chỉ ghi "sửa
+  inline" mà không đặc tả field nào; đây là phạm vi tối thiểu hợp lý cho một reader cá nhân,
+  tránh phải xây dựng lại toàn bộ form validation phức tạp (REPLACE cần replacement, ASK cần
+  ≥2 candidates) ngay trong một dòng bảng.
+- **`series_key` (dùng để lưu vị trí đọc) = URL của chương**, hoặc `"raw"` nếu đọc bằng paste
+  text — spec không đặc tả cách tính series_key (nhóm nhiều chương cùng 1 truyện); đây là lựa
+  chọn tối thiểu khả thi, không cố suy luận "tên truyện" từ URL vì dễ sai và ngoài phạm vi đã
+  chốt.
+- **`GET /reader/{id}` là route bổ sung** (không có trong bảng route bắt buộc của work order,
+  vốn chỉ liệt kê ở tầng `/api/chapters/{id}` JSON) — thêm vì cần một trang HTML tương ứng để
+  mở lại chương đã cache trực tiếp bằng URL, đối xứng với JSON API tương ứng.
+
+## Deviations
+Không có ngoài phần đã nêu ở Assumptions.
+
+## BLOCKER
+Không có (chỉ có giới hạn môi trường về screenshot, đã nêu rõ ở Assumptions, không chặn chức
+năng).
+
+## Ready for gate? YES
