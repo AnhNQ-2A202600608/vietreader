@@ -1,0 +1,6 @@
+id: case_010
+input: Cô nương nói với công tử rằng nàng sẽ đợi.
+dictionary_ref: default
+expect_output: Cô gái nói với cậu chủ rằng nàng sẽ đợi.
+must_keep: []
+must_not_contain: []

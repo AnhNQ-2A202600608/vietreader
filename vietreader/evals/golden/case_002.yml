@@ -1,0 +1,6 @@
+id: case_002
+input: Cô nương đứng bên cửa sổ.
+dictionary_ref: default
+expect_output: Cô gái đứng bên cửa sổ.
+must_keep: []
+must_not_contain: []

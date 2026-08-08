@@ -1,0 +1,6 @@
+id: case_030
+input: Tại hạ nghe nói đạo hữu rất giỏi kiếm thuật.
+dictionary_ref: default
+expect_output: Tại hạ nghe nói đạo hữu rất giỏi kiếm thuật.
+must_keep: []
+must_not_contain: []

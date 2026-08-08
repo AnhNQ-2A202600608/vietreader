@@ -1,0 +1,7 @@
+id: case_032
+input: Đạo hữu uống đan dược này đi.
+dictionary_ref: default
+expect_output: Đạo hữu uống đan dược này đi.
+must_keep:
+- đan dược
+must_not_contain: []

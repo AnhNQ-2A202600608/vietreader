@@ -1,0 +1,6 @@
+id: case_003
+input: Tiền bối xin thứ lỗi cho vãn bối.
+dictionary_ref: default
+expect_output: Bậc tiền bối xin thứ lỗi cho vãn bối.
+must_keep: []
+must_not_contain: []

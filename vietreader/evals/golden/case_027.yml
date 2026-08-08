@@ -1,0 +1,6 @@
+id: case_027
+input: Huynh đài đến từ nơi nào?
+dictionary_ref: default
+expect_output: Huynh đài đến từ nơi nào?
+must_keep: []
+must_not_contain: []

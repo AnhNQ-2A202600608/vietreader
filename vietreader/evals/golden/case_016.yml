@@ -1,0 +1,7 @@
+id: case_016
+input: Linh lực trong người thiếu niên đang dâng trào.
+dictionary_ref: default
+expect_output: Linh lực trong người cậu trai đang dâng trào.
+must_keep:
+- linh lực
+must_not_contain: []

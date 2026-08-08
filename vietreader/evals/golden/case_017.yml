@@ -1,0 +1,7 @@
+id: case_017
+input: Lão giả uống một viên đan dược.
+dictionary_ref: default
+expect_output: Ông lão uống một viên đan dược.
+must_keep:
+- đan dược
+must_not_contain: []

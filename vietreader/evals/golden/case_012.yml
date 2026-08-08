@@ -1,0 +1,6 @@
+id: case_012
+input: Nương tử ơi, ta đã về rồi.
+dictionary_ref: default
+expect_output: Nàng ơi, ta đã về rồi.
+must_keep: []
+must_not_contain: []

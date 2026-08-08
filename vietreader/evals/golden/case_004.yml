@@ -1,0 +1,6 @@
+id: case_004
+input: Hài tử này thật đáng yêu.
+dictionary_ref: default
+expect_output: Đứa trẻ này thật đáng yêu.
+must_keep: []
+must_not_contain: []

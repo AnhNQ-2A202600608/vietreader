@@ -1,0 +1,6 @@
+id: case_013
+input: Thiếu niên kia chính là đệ tử của lão giả.
+dictionary_ref: default
+expect_output: Cậu trai kia chính là đệ tử của ông lão.
+must_keep: []
+must_not_contain: []

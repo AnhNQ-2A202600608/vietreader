@@ -1,0 +1,6 @@
+id: case_014
+input: Công tử và cô nương gặp nhau lần đầu tại hội chợ.
+dictionary_ref: default
+expect_output: Cậu chủ và cô gái gặp nhau lần đầu tại hội chợ.
+must_keep: []
+must_not_contain: []

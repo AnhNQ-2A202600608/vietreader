@@ -1,0 +1,7 @@
+id: case_031
+input: Xin hỏi huynh đài có biết đường đến tông môn không?
+dictionary_ref: default
+expect_output: Xin hỏi huynh đài có biết đường đến tông môn không?
+must_keep:
+- tông môn
+must_not_contain: []

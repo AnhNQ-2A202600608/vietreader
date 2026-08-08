@@ -1,0 +1,6 @@
+id: case_029
+input: Đạo hữu và huynh đài cùng nhau xuống núi.
+dictionary_ref: default
+expect_output: Đạo hữu và huynh đài cùng nhau xuống núi.
+must_keep: []
+must_not_contain: []

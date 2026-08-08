@@ -1,0 +1,7 @@
+id: case_020
+input: Cô nương tu luyện linh lực mỗi ngày.
+dictionary_ref: default
+expect_output: Cô gái tu luyện linh lực mỗi ngày.
+must_keep:
+- linh lực
+must_not_contain: []

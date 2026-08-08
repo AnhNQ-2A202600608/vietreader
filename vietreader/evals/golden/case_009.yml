@@ -1,0 +1,6 @@
+id: case_009
+input: Lão giả và thiếu niên cùng nhau lên đường.
+dictionary_ref: default
+expect_output: Ông lão và cậu trai cùng nhau lên đường.
+must_keep: []
+must_not_contain: []

@@ -1,0 +1,6 @@
+id: case_034
+input: Huynh đài, lão giả đang chờ ngài.
+dictionary_ref: default
+expect_output: Huynh đài, ông lão đang chờ ngài.
+must_keep: []
+must_not_contain: []

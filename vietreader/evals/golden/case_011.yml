@@ -1,0 +1,6 @@
+id: case_011
+input: Tiền bối, hài tử này là ai vậy?
+dictionary_ref: default
+expect_output: Bậc tiền bối, đứa trẻ này là ai vậy?
+must_keep: []
+must_not_contain: []

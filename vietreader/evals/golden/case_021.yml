@@ -1,0 +1,8 @@
+id: case_021
+input: Tông môn ban thưởng đan dược cho thiếu niên.
+dictionary_ref: default
+expect_output: Tông môn ban thưởng đan dược cho cậu trai.
+must_keep:
+- tông môn
+- đan dược
+must_not_contain: []

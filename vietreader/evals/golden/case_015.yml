@@ -1,0 +1,6 @@
+id: case_015
+input: Hài tử của lão giả rất thông minh.
+dictionary_ref: default
+expect_output: Đứa trẻ của ông lão rất thông minh.
+must_keep: []
+must_not_contain: []

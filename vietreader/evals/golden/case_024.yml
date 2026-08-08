@@ -1,0 +1,8 @@
+id: case_024
+input: Tông môn của công tử sở hữu nhiều đan dược quý.
+dictionary_ref: default
+expect_output: Tông môn của cậu chủ sở hữu nhiều đan dược quý.
+must_keep:
+- tông môn
+- đan dược
+must_not_contain: []

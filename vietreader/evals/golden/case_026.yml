@@ -1,0 +1,6 @@
+id: case_026
+input: Đạo hữu, xin hãy cẩn thận.
+dictionary_ref: default
+expect_output: Đạo hữu, xin hãy cẩn thận.
+must_keep: []
+must_not_contain: []

@@ -1,0 +1,6 @@
+id: case_033
+input: Tại hạ là thiếu niên mới nhập môn.
+dictionary_ref: default
+expect_output: Tại hạ là cậu trai mới nhập môn.
+must_keep: []
+must_not_contain: []

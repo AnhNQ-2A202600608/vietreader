@@ -1,0 +1,6 @@
+id: case_040
+input: Lão giả bước đi chậm rãi.
+dictionary_ref: default
+expect_output: Ông lão bước đi chậm rãi.
+must_keep: []
+must_not_contain: []

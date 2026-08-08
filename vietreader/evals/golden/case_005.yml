@@ -1,0 +1,6 @@
+id: case_005
+input: Công tử đã trở về từ kinh thành.
+dictionary_ref: default
+expect_output: Cậu chủ đã trở về từ kinh thành.
+must_keep: []
+must_not_contain: []

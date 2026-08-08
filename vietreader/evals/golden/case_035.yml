@@ -1,0 +1,6 @@
+id: case_035
+input: Đạo hữu, tiền bối muốn gặp ngài.
+dictionary_ref: default
+expect_output: Đạo hữu, bậc tiền bối muốn gặp ngài.
+must_keep: []
+must_not_contain: []

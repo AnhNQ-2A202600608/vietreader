@@ -1,0 +1,7 @@
+id: case_022
+input: Linh lực dồi dào giúp lão giả trẻ lại.
+dictionary_ref: default
+expect_output: Linh lực dồi dào giúp ông lão trẻ lại.
+must_keep:
+- linh lực
+must_not_contain: []

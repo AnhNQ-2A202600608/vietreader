@@ -1,0 +1,7 @@
+id: case_018
+input: Tông môn của lão giả rất hùng mạnh.
+dictionary_ref: default
+expect_output: Tông môn của ông lão rất hùng mạnh.
+must_keep:
+- tông môn
+must_not_contain: []

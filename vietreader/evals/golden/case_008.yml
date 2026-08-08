@@ -1,0 +1,6 @@
+id: case_008
+input: thiếu niên chạy nhanh về phía trước.
+dictionary_ref: default
+expect_output: cậu trai chạy nhanh về phía trước.
+must_keep: []
+must_not_contain: []

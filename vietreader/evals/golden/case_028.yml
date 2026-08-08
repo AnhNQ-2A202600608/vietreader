@@ -1,0 +1,6 @@
+id: case_028
+input: Tại hạ họ Lý tên Bạch.
+dictionary_ref: default
+expect_output: Tại hạ họ Lý tên Bạch.
+must_keep: []
+must_not_contain: []

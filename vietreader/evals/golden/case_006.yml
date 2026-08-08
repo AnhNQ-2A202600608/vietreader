@@ -1,0 +1,6 @@
+id: case_006
+input: Nương tử đang chờ chàng ở nhà.
+dictionary_ref: default
+expect_output: Nàng đang chờ chàng ở nhà.
+must_keep: []
+must_not_contain: []

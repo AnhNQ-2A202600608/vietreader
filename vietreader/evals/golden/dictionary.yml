@@ -1,0 +1,55 @@
+# Default dictionary shared by all golden cases (dictionary_ref: default).
+# Vocabulary is deliberately wuxia/xianxia-flavored to match the project's target genre.
+entries:
+  # REPLACE
+  - surface: "lão giả"
+    display: "lão giả"
+    policy: replace
+    replacement: "ông lão"
+  - surface: "thiếu niên"
+    display: "thiếu niên"
+    policy: replace
+    replacement: "cậu trai"
+  - surface: "cô nương"
+    display: "cô nương"
+    policy: replace
+    replacement: "cô gái"
+  - surface: "tiền bối"
+    display: "tiền bối"
+    policy: replace
+    replacement: "bậc tiền bối"
+  - surface: "hài tử"
+    display: "hài tử"
+    policy: replace
+    replacement: "đứa trẻ"
+  - surface: "công tử"
+    display: "công tử"
+    policy: replace
+    replacement: "cậu chủ"
+  - surface: "nương tử"
+    display: "nương tử"
+    policy: replace
+    replacement: "nàng"
+  # KEEP
+  - surface: "linh lực"
+    display: "linh lực"
+    policy: keep
+  - surface: "đan dược"
+    display: "đan dược"
+    policy: keep
+  - surface: "tông môn"
+    display: "tông môn"
+    policy: keep
+  # ASK
+  - surface: "đạo hữu"
+    display: "đạo hữu"
+    policy: ask
+    candidates: ["đạo hữu", "bạn", "vị này"]
+  - surface: "huynh đài"
+    display: "huynh đài"
+    policy: ask
+    candidates: ["huynh đài", "anh bạn", "vị huynh đệ"]
+  - surface: "tại hạ"
+    display: "tại hạ"
+    policy: ask
+    candidates: ["tại hạ", "tôi", "ta"]
