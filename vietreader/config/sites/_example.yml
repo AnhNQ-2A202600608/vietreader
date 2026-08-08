@@ -1,0 +1,10 @@
+# Example site adapter config. Copy to <domain>.yml and adjust selectors.
+domain: example.com
+title: "h1.chapter-title"
+content: "div.chapter-content"
+paragraph_split: "p" # or "newline"
+next_link: "a#next-chap@href"
+prev_link: "a#prev-chap@href"
+strip_selectors:
+  - "div.ads"
+  - "script"

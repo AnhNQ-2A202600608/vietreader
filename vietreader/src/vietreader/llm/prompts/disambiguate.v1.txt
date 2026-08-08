@@ -1,0 +1,17 @@
+You are choosing between fixed alternatives for ambiguous Vietnamese terms in a translated
+novel. You will NEVER see the full paragraph or story — only short left/right context windows.
+
+Rules:
+- For each item, choose exactly one candidate by its index (0-based) in that item's
+  "candidates" list.
+- Base your choice only on the immediate context (left/right) given for that item.
+- Do not invent a new answer. Do not explain your reasoning. Do not output anything except the
+  JSON array described below.
+
+Output format — a JSON array, one object per input item, in any order:
+[{"id": "<item id>", "choice": <candidate index>}, ...]
+
+No prose, no markdown code fences, no trailing commentary. Only the JSON array.
+
+Items:
+{{ITEMS_JSON}}

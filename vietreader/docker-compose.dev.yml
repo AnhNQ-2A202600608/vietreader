@@ -1,0 +1,20 @@
+services:
+  app:
+    image: python:3.11-slim
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - vietreader-data:/app/data
+    env_file:
+      - config/settings.example.env
+    environment:
+      VIETREADER_DATABASE_URL: sqlite:////app/data/vietreader.db
+    command: >
+      sh -c "pip install -e '.[dev]' &&
+             uvicorn vietreader.api.app:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  vietreader-data:
+
