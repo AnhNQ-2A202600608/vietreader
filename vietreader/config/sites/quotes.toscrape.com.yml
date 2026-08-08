@@ -1,0 +1,11 @@
+# Adapter for quotes.toscrape.com — a site built for scraping practice, used here purely as
+# a real, stable fixture to exercise the config-driven adapter mechanics (title/content/
+# paragraph/next_link selectors, strip_selectors). Not a real novel site.
+domain: quotes.toscrape.com
+title: "h1 a"
+content: ".row.header-box + .row .col-md-8"
+paragraph_split: "span.text"
+next_link: "li.next a@href"
+prev_link: null
+strip_selectors:
+  - "div.tags"

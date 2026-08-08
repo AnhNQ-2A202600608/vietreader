@@ -9,11 +9,11 @@ thực từng phase như dưới đây.
 # PHASE 0 REPORT — Scaffolding & Contracts
 
 ## Deliverables
-- `pyproject.toml` (74 dòng) — dependency allowlist đầy đủ, pin minor version, ruff/mypy config
+- `pyproject.toml` (66 dòng) — dependency allowlist đầy đủ, pin minor version, ruff/mypy config
 - Repo layout đầy đủ theo §1.2 (tất cả thư mục + file rỗng có docstring)
-- `src/vietreader/settings.py` (27 dòng) — pydantic-settings
+- `src/vietreader/settings.py` (28 dòng) — pydantic-settings
 - `config/settings.example.env`, `config/sites/_example.yml`
-- `Makefile` (26 dòng): install/test/lint/typecheck/run/eval
+- `Makefile` (29 dòng): install/test/lint/typecheck/run/eval
 - `alembic.ini`
 - `DECISIONS.md`, `README.md`, `.gitignore`
 - `docker-compose.dev.yml`
@@ -88,9 +88,9 @@ và ghi rõ lý do.
 # PHASE 1 REPORT — Core Domain: Models + Dictionary + Matcher
 
 ## Deliverables
-- `core/models.py` (61 dòng) — `Policy`, `Span`, `Change`, `Chapter`, `ValidationResult`
-- `core/dictionary.py` (100 dòng) — `DictionaryEntry` (+ invariant validation), `CompiledDictionary`
-- `core/matcher.py` (83 dòng) — L1: Aho-Corasick + word-boundary + KEEP-priority + longest-match + tie-break
+- `core/models.py` (62 dòng) — `Policy`, `Span`, `Change`, `Chapter`, `ValidationResult`
+- `core/dictionary.py` (106 dòng) — `DictionaryEntry` (+ invariant validation), `CompiledDictionary`
+- `core/matcher.py` (93 dòng) — L1: Aho-Corasick + word-boundary + KEEP-priority + longest-match + tie-break
 - `core/casing.py` (39 dòng) — casing transfer (lower/title/upper/mixed)
 - `tests/unit/test_matcher.py` (10 test case theo bảng yêu cầu, gồm 1 property test)
 - `tests/unit/test_casing.py` (9 test, để đạt coverage >=95%)
@@ -152,9 +152,9 @@ Không có.
 # PHASE 2 REPORT — Resolver + Applier + Validator
 
 ## Deliverables
-- `core/resolver.py` (77 dòng) — L2: `AskResolver` Protocol + `AskDecision`, `resolve()`
-- `core/applier.py` (37 dòng) — L4: `apply_changes()`
-- `core/validator.py` (117 dòng) — L5: `reconstruct()` + `validate()` với I1–I7
+- `core/resolver.py` (81 dòng) — L2: `AskResolver` Protocol + `AskDecision`, `resolve()`
+- `core/applier.py` (38 dòng) — L4: `apply_changes()`
+- `core/validator.py` (127 dòng) — L5: `reconstruct()` + `validate()` với I1–I7
 - `tests/unit/test_applier.py` (3 test round-trip)
 - `tests/unit/test_validator.py` (7 test invariant cụ thể + 1 property test 200 examples)
 
@@ -192,10 +192,10 @@ Không có.
 ## Deliverables
 - `llm/provider.py` (83 dòng) — `LLMProvider` Protocol, `DisambiguationItem`, `FakeProvider`
   (modes: correct/broken_json/out_of_range/missing_id/timeout)
-- `llm/anthropic.py` (72 dòng) — `AnthropicProvider` thật, dùng `httpx` thuần, hỗ trợ inject
+- `llm/anthropic.py` (82 dòng) — `AnthropicProvider` thật, dùng `httpx` thuần, hỗ trợ inject
   `transport` để test offline bằng `httpx.MockTransport`
 - `llm/prompts/disambiguate.v1.txt` — prompt template
-- `llm/disambiguator.py` (166 dòng) — `PROMPT_VERSION="v1"`, `cache_key()`, batching (batch_size
+- `llm/disambiguator.py` (176 dòng) — `PROMPT_VERSION="v1"`, `cache_key()`, batching (batch_size
   mặc định 40), retry (mặc định 2), `disambiguate_batch()`
 - `tests/unit/test_disambiguator.py` (10 test, offline, dùng `FakeProvider`)
 - `tests/unit/test_anthropic_provider.py` (3 test offline dùng `httpx.MockTransport`)
@@ -289,3 +289,90 @@ TOTAL                                           495     41    92%
     độ vì 1 API key thiếu; ghi rõ NOT RUN thay vì bịa kết quả.
 
 ## Ready for gate? YES (trừ đúng 1 mục NOT RUN đã nêu, không phải lỗi logic)
+
+---
+
+# PHASE 4 REPORT — Extraction
+
+## Deliverables
+- `core/normalize.py` (23 dòng, **bổ sung** — xem Assumptions) — `normalize_text()`, `split_paragraphs()`
+  dùng chung cho extraction (L0) và pipeline raw_hash (Phase 5), theo đúng spec §3.1
+- `extraction/base.py` (37 dòng) — re-export `Chapter` từ core, `Extractor` Protocol,
+  `ExtractionError`, `from_raw_text()`
+- `extraction/fetcher.py` (56 dòng) — `Fetcher`: httpx, timeout, retry, User-Agent, delay lịch sự
+- `extraction/config_adapter.py` (109 dòng) — `SiteConfig`, `ConfigAdapter` (selectolax)
+- `extraction/generic.py` (30 dòng) — `GenericExtractor` (trafilatura fallback)
+- `extraction/registry.py` (35 dòng) — `Registry`: chọn adapter theo domain, fallback generic
+- `config/sites/quotes.toscrape.com.yml` — site adapter config thật dùng cho test
+- `tests/fixtures/html/vi_wikipedia_ho_hoan_kiem.html` (281KB), `quotes_toscrape_page1.html`
+  (11KB) — 2 fixture HTML thật, xem `tests/fixtures/html/SOURCES.md` cho nguồn + ngày tải
+- `tests/unit/test_extraction.py` (10 test — 8 test case bảng + 2 bổ sung: relative-URL riêng
+  + content-selector-not-found), `tests/unit/test_normalize.py` (6 test)
+
+## Commands Run
+
+```
+$ .venv/Scripts/python.exe -m pytest -q tests/unit/test_extraction.py tests/unit/test_normalize.py -v
+tests\unit\test_extraction.py ..........                                 [ 62%]
+tests\unit\test_normalize.py ......                                      [100%]
+16 passed in 0.79s
+
+$ .venv/Scripts/python.exe -m ruff check src tests
+All checks passed!
+
+$ .venv/Scripts/python.exe -m mypy src/vietreader/core
+Success: no issues found in 9 source files
+
+$ .venv/Scripts/python.exe -m pytest -q --cov=vietreader --cov-report=term-missing   # full suite, all phases
+.......................................................................  [100%]
+TOTAL   658 stmts, 51 miss, 92%
+71 passed, 1 deselected in 2.22s
+
+extraction/base.py            100%
+extraction/config_adapter.py   99%   (line 60: paragraph_split "newline" branch edge case)
+extraction/fetcher.py          85%   (lines 40, 52-55: retry-loop internals not hit by every test)
+extraction/generic.py          87%   (lines 15, 19: trafilatura-returns-nothing branches)
+extraction/registry.py         92%   (lines 25, 31: no-config-dir / not-a-file edge branches)
+core/normalize.py              100%
+```
+
+## Acceptance Check
+- [x] 8 test case bảng (offline, dùng fixture) PASS — PASS (10 test viết, bảng yêu cầu nằm
+      trong đó: #1 adapter match, #2 generic fallback, #3 strip ads/clutter, #4 no next_link,
+      #5 empty/broken HTML, #6 from_raw_text, #7 relative next_url, #8 403/timeout mock)
+- [x] Có >= 2 fixture HTML thật từ 2 site khác nhau, agent tự tải, ghi rõ nguồn — PASS
+      (`tests/fixtures/html/SOURCES.md`)
+- [x] `from_raw_text` hoạt động độc lập hoàn toàn với network — PASS (test thuần text, không
+      import httpx/selectolax/trafilatura trên đường thực thi của nó)
+
+## Assumptions
+- **Bổ sung `core/normalize.py`** — spec §3.1 mô tả rõ quy tắc normalize (NFC, CRLF→LF, strip
+  trailing space, collapse blank lines) và Phase 5 pseudocode ghi "1. extract → Chapter
+  (normalize)", nhưng §1.2 repo layout không liệt kê module riêng cho việc này. Đặt vào `core/`
+  (pure, không I/O) để dùng chung giữa `extraction/` (Phase 4) và `pipeline/` khi tính `raw_hash`
+  (Phase 5), tránh trùng lặp logic normalize ở 2 nơi.
+- **`Chapter` vẫn định nghĩa duy nhất trong `core/models.py`**, `extraction/base.py` chỉ
+  re-export — theo assumption đã ghi ở Phase 1 (giải quyết mâu thuẫn giữa §1.2 và Phase 4
+  deliverables text).
+- **Cú pháp selector mở rộng `"selector@attr"`** (vd `"a#next-chap@href"`) — lấy giá trị
+  attribute thay vì text; nếu attr thuộc `{href, src}` thì tự động `urljoin()` với `source_url`
+  để trả về absolute URL. Không có trong spec chi tiết hơn "a#next-chap@href" trong ví dụ YAML
+  §Schema, nhưng cách diễn giải `@` là điểm phân cách selector/attribute là hợp lý duy nhất
+  khớp với ví dụ đó.
+- **`paragraph_split`** nhận HOẶC `"newline"` (từ khoá đặc biệt: tách theo dòng trống trong text
+  thô của content container) HOẶC bất kỳ CSS selector nào khác (khớp phần tử con trong content,
+  mỗi phần tử = 1 đoạn) — spec chỉ ghi ví dụ `"p"  # hoặc "newline"`, đã tổng quát hoá "p" thành
+  "bất kỳ selector nào" vì đó rõ ràng chỉ là ví dụ minh hoạ, không phải enum cố định 2 giá trị.
+- **2 fixture HTML thật**: 1 từ `vi.wikipedia.org` (nội dung CC BY-SA, dùng cho test generic
+  fallback), 1 từ `quotes.toscrape.com` (site dựng riêng cho luyện tập scraping, không robots.txt
+  hạn chế, dùng cho test adapter config — KHÔNG phải site truyện thật). Không tải từ site truyện
+  có bản quyền thật để tránh rủi ro pháp lý khi lưu HTML vào repo git (khác với runtime fetch
+  của người dùng cuối, vốn đã có delay + User-Agent + paste-fallback theo đúng §6 risk table).
+
+## Deviations
+Không có ngoài phần bổ sung `core/normalize.py` đã nêu ở Assumptions.
+
+## BLOCKER
+Không có.
+
+## Ready for gate? YES
