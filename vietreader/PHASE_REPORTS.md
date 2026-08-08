@@ -853,10 +853,45 @@ $ .venv/Scripts/python.exe -m pytest -q --cov=vietreader --cov-report=term-missi
 TOTAL   1468 stmts, 36 miss, 98%
 ```
 
-**`docker compose -f docker-compose.dev.yml up`: NOT RUN** — Docker Desktop cài trên máy nhưng
-daemon không chạy (`docker info` → `Server: error during connect ... dockerDesktopLinuxEngine`).
-Không tự khởi động Docker Desktop giữa phiên làm việc (hành động hệ thống nặng, không cần thiết
-để hoàn thành các phase khác). Xem BLOCKER.
+**`docker compose -f docker-compose.dev.yml up`: ĐÃ XÁC MINH THẬT** (cập nhật sau khi người
+duyệt yêu cầu tiếp tục — đã khởi động Docker Desktop và chạy lại):
+
+```
+$ docker compose -f docker-compose.dev.yml config    # validate cú pháp
+name: vietreader
+services:
+  app:
+    ...
+    image: python:3.11-slim
+    ports:
+      - mode: ingress
+        target: 8000
+        published: "8000"
+    ...
+
+$ docker compose -f docker-compose.dev.yml up --detach
+ app Pulling ... app Pulled
+ Network vietreader_default  Created
+ Volume "vietreader_vietreader-data"  Created
+ Container vietreader-app-1  Started
+
+$ docker compose -f docker-compose.dev.yml logs --tail=30
+app-1  | Successfully installed ... vietreader-0.1.0 ...
+app-1  | INFO:     Uvicorn running on http://0.0.0.0:8000
+app-1  | INFO:     Application startup complete.
+
+$ curl http://localhost:8000/api/health
+{"status":"ok"}
+$ curl -o /dev/null -w "home: %{http_code}\n" http://localhost:8000/    -> home: 200
+$ curl -o /dev/null -w "docs: %{http_code}\n" http://localhost:8000/docs -> docs: 200
+
+$ docker compose -f docker-compose.dev.yml down
+ Container vietreader-app-1  Removed
+ Network vietreader_default  Removed
+```
+
+Container tự `pip install -e ".[dev]"` bên trong `python:3.11-slim` sạch (không cache), bao gồm
+đúng `lxml_html_clean` (xác nhận fix ở mục Assumptions vẫn đúng trong môi trường container).
 
 ## Acceptance Check
 - [x] Clone sạch → làm theo README → chạy được, paste toàn bộ output — **PASS, có 1 lỗi thật
@@ -866,6 +901,8 @@ Không tự khởi động Docker Desktop giữa phiên làm việc (hành độ
       Phase 0 deviation) — PASS, xác nhận cả trên clone sạch lẫn venv dev chính
 - [x] Coverage report thật: tổng **98%** (>= 85% yêu cầu), `core/` **~95%** (>= 90% yêu cầu,
       tính từ 322/339 statements covered trong bảng coverage ở trên) — PASS
+- [x] `docker-compose.dev.yml` chạy được — **PASS**, xác minh thật bằng `docker compose up`
+      + container tự cài đặt + server trả lời `curl` từ host (xem Commands Run)
 
 ## Assumptions
 - **Seed dictionary đặt tại `config/seed_dictionary.yml` + `scripts/seed_dictionary.py`**
@@ -882,18 +919,7 @@ Không tự khởi động Docker Desktop giữa phiên làm việc (hành độ
   phiên bản `lxml` hiện tại, phát hiện qua kiểm thử clone sạch thật. Xem DECISIONS.md.
 
 ## BLOCKER
-**`docker compose -f docker-compose.dev.yml up`: NOT RUN.** (a) Đang cố làm: xác minh
-docker-compose chạy được theo đúng acceptance "docker-compose.dev.yml chạy được". (b) Lỗi
-nguyên văn: `docker info` → `Server: error during connect: Get
-"http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.49/info": open
-//./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.` — Docker Desktop
-đã cài nhưng daemon chưa chạy. (c) 2 phương án: (1) người duyệt tự khởi động Docker Desktop rồi
-chạy `docker compose -f docker-compose.dev.yml up` (lệnh + file đã sẵn sàng, cấu hình đã review
-kỹ ở Phase 0); (2) chấp nhận NOT RUN, coi việc `pip install -e ".[dev]"` chạy sạch trên clone
-mới (đã xác minh thật) là bằng chứng gián tiếp mạnh rằng container (cũng chạy cùng lệnh pip
-install bên trong `python:3.11-slim`) sẽ hoạt động tương tự. (d) Đề xuất: (2) — không tự ý khởi
-động một background system service (Docker Desktop) chỉ để xác minh 1 mục, khi đã có bằng chứng
-gián tiếp đủ mạnh; nếu người duyệt cần xác nhận 100%, chạy lại đúng 1 lệnh ở trên.
+Không có — mục Docker daemon từng là BLOCKER nhẹ đã được giải quyết (xem Commands Run: đã khởi
+động Docker Desktop và xác minh `docker compose up` thật thành công).
 
-## Ready for gate? YES (trừ đúng 1 mục NOT RUN đã nêu — Docker daemon không chạy trên máy build,
-không phải lỗi cấu hình)
+## Ready for gate? YES
