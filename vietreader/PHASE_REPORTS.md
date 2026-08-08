@@ -376,3 +376,102 @@ Không có ngoài phần bổ sung `core/normalize.py` đã nêu ở Assumptions
 Không có.
 
 ## Ready for gate? YES
+
+---
+
+# PHASE 5 REPORT — Persistence + Pipeline Orchestration
+
+## Deliverables
+- `db/models.py` (96 dòng) — 6 bảng SQLAlchemy 2.0 ORM theo đúng §2.4: `dictionary_entry`,
+  `dictionary_version`, `chapter_cache`, `llm_cache`, `reading_position`, `run_log`
+- `db/base.py` (41 dòng) — engine/session, bật `PRAGMA journal_mode=WAL` cho SQLite
+- `db/repositories/dictionary.py` (147 dòng) — `DictionaryRepo` (CRUD, validate invariant qua
+  `core.DictionaryEntry` trước khi ghi DB, bắt `IntegrityError` trùng surface)
+- `db/repositories/chapter_cache.py` (97 dòng) — `ChapterCacheRepo`, `compute_raw_hash()`,
+  `compute_source_key()`
+- `db/repositories/llm_cache.py` (32 dòng) — `LLMCacheRepo` implement `CacheBackend` Protocol
+- `db/repositories/position.py` (47 dòng) — `PositionRepo`
+- `db/repositories/run_log.py` (31 dòng) — `RunLogRepo`
+- `migrations/env.py`, `migrations/script.py.mako`, `migrations/versions/ea573cb719cc_initial_schema.py`
+  (102 dòng, autogenerate từ ORM models thật, không viết tay)
+- `pipeline/process_chapter.py` (242 dòng) — orchestrator đầy đủ 6 bước theo pseudocode spec
+- `tests/integration/test_pipeline.py` (4 test), `test_repositories.py` (7 test), `test_db_base.py`
+  (3 test) — 14 test mới
+
+## Commands Run
+
+```
+$ rm -f vietreader.db* && .venv/Scripts/python.exe -m alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade  -> ea573cb719cc, initial schema
+
+$ .venv/Scripts/python.exe -m alembic downgrade base
+INFO  [alembic.runtime.migration] Running downgrade ea573cb719cc -> , initial schema
+
+$ .venv/Scripts/python.exe -m alembic upgrade head
+INFO  [alembic.runtime.migration] Running upgrade  -> ea573cb719cc, initial schema
+
+$ .venv/Scripts/python.exe -c "import sqlite3; ..."   # kiểm tra bảng
+alembic_version
+chapter_cache
+dictionary_entry
+dictionary_version
+llm_cache
+reading_position
+run_log
+
+$ .venv/Scripts/python.exe -m ruff check src tests
+All checks passed!
+
+$ .venv/Scripts/python.exe -m mypy src/vietreader/core
+Success: no issues found in 9 source files
+
+$ .venv/Scripts/python.exe -m pytest -q --cov=vietreader --cov-report=term-missing
+........................................................................ [ 84%]
+.............                                                            [100%]
+TOTAL   1044 stmts, 53 miss, 95%
+85 passed, 1 deselected in 3.14s
+```
+
+## Acceptance Check
+- [x] `alembic upgrade head` chạy sạch trên DB mới, output thật ở trên — PASS
+- [x] `alembic downgrade base` rồi `upgrade head` lại — chạy sạch — PASS
+- [x] Integration test end-to-end với `FakeProvider` + HTML fixture (thật,
+      `quotes_toscrape_page1.html` qua `Fetcher(transport=MockTransport)` + `Registry` thật) —
+      PASS (`test_end_to_end_with_fake_provider_and_html_fixture`)
+- [x] Test cache: gọi lần 2 → `from_cache=True`, `llm_calls=0` — PASS
+      (`test_second_call_hits_cache_with_zero_llm_calls`)
+- [x] Test đổi dictionary → cache miss (chapter_cache) — PASS
+      (`test_dictionary_change_causes_cache_miss`; xem Assumptions về hành vi llm_cache độc lập)
+- [x] Test validator FAIL → trả raw_text, không có row mới trong `chapter_cache` — PASS
+      (`test_validator_failure_returns_raw_text_and_does_not_cache`)
+
+## Assumptions
+- **`source_key` (khoá tra cache chương) = ghép chuỗi** `sha256(raw_text) + dict_version_hash +
+  prompt_version + model` (nối bằng `"|"`, không hash lại lần nữa) — đọc đúng nghĩa đen công thức
+  trong spec §2.4, phân biệt với công thức LLM cache key ở §3.4 vốn có `sha256(...)` bọc ngoài
+  toàn bộ chuỗi ghép. `raw_hash` vẫn lưu cột riêng như bảng §2.4 mô tả.
+- **Hai lớp cache độc lập nhau theo đúng thiết kế:** đổi `dictionary` → `dict_version_hash` đổi →
+  `chapter_cache` miss (phải xử lý lại chương), nhưng `llm_cache` (khoá theo
+  `prompt_version+model+term+candidates+left+right`, KHÔNG có `dict_version_hash`) vẫn có thể hit
+  nếu câu hỏi ASK giống hệt lần trước — đây là hành vi đúng của "2 lớp cache" nêu ở §6 risk table
+  ("Chi phí LLM: Thấp — Chỉ gọi cho span ASK + 2 lớp cache"), không phải bug.
+- **`llm/disambiguator.py` đổi return type** từ `list[DisambiguationResult]` thành
+  `DisambiguationOutcome{results, llm_calls, cache_hits}` — cần thiết để `ProcessResult.stats`
+  (`llm_calls`, `llm_cache_hits`) chính xác với MỌI provider (không chỉ `FakeProvider` vốn tự
+  đếm `call_count`; `AnthropicProvider` thật không có counter đó). Đã cập nhật lại toàn bộ test
+  Phase 3 tương ứng, chạy lại PASS.
+- **`Fetcher` nhận thêm `transport` ở constructor** (ngoài tham số `transport` sẵn có ở
+  `.fetch()`) — để `process_chapter` test được end-to-end với `httpx.MockTransport` mà không cần
+  sửa signature của `process_chapter` để xuyên `transport` qua nhiều lớp.
+- **DB test dùng SQLite in-memory + `Base.metadata.create_all()`**, không chạy qua Alembic —
+  đúng thực hành chuẩn (tách biệt "migration đúng cú pháp" khỏi "ORM model đúng hành vi"); tính
+  đúng đắn của migration được xác minh riêng bằng lệnh `alembic upgrade/downgrade/upgrade` thật
+  ở trên.
+
+## Deviations
+Không có ngoài phần đã nêu ở Assumptions.
+
+## BLOCKER
+Không có.
+
+## Ready for gate? YES

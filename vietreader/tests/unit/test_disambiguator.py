@@ -45,10 +45,12 @@ async def test_happy_path_three_spans() -> None:
     reqs = [request(f"p0_s{i}", entry) for i in range(3)]
     provider = FakeProvider(mode="correct", choose={r.id: 2 for r in reqs})
 
-    results = await disambiguate_batch(reqs, provider, model="test-model")
+    outcome = await disambiguate_batch(reqs, provider, model="test-model")
+    results = outcome.results
 
     assert len(results) == 3
     assert provider.call_count == 1
+    assert outcome.llm_calls == 1
     for r in results:
         assert r.decision is not None
         assert r.decision.choice_index == 2
@@ -61,9 +63,11 @@ async def test_broken_json_retries_then_falls_back_to_keep() -> None:
     reqs = [request("p0_s0", entry)]
     provider = FakeProvider(mode="broken_json")
 
-    results = await disambiguate_batch(reqs, provider, model="test-model", max_retries=2)
+    outcome = await disambiguate_batch(reqs, provider, model="test-model", max_retries=2)
+    results = outcome.results
 
     assert provider.call_count == 3  # 1 initial + 2 retries
+    assert outcome.llm_calls == 3
     assert len(results) == 1
     assert results[0].decision is None
     assert results[0].warning is not None
@@ -74,7 +78,8 @@ async def test_choice_out_of_range_falls_back_to_keep() -> None:
     reqs = [request("p0_s0", entry)]
     provider = FakeProvider(mode="out_of_range")
 
-    results = await disambiguate_batch(reqs, provider, model="test-model")
+    outcome = await disambiguate_batch(reqs, provider, model="test-model")
+    results = outcome.results
 
     assert len(results) == 1
     assert results[0].decision is None
@@ -86,9 +91,9 @@ async def test_missing_id_falls_back_others_still_ok() -> None:
     reqs = [request("p0_s0", entry), request("p0_s1", entry)]
     provider = FakeProvider(mode="missing_id")  # drops the response item for the first request
 
-    results = await disambiguate_batch(reqs, provider, model="test-model")
+    outcome = await disambiguate_batch(reqs, provider, model="test-model")
 
-    by_id = {r.id: r for r in results}
+    by_id = {r.id: r for r in outcome.results}
     assert by_id["p0_s0"].decision is None
     assert by_id["p0_s0"].warning is not None
     assert by_id["p0_s1"].decision is not None
@@ -99,10 +104,10 @@ async def test_provider_timeout_falls_back_without_crashing() -> None:
     reqs = [request("p0_s0", entry)]
     provider = FakeProvider(mode="timeout")
 
-    results = await disambiguate_batch(reqs, provider, model="test-model", max_retries=1)
+    outcome = await disambiguate_batch(reqs, provider, model="test-model", max_retries=1)
 
     assert provider.call_count == 2  # 1 initial + 1 retry
-    assert results[0].decision is None
+    assert outcome.results[0].decision is None
 
 
 async def test_hundred_spans_split_into_three_batches_40_40_20() -> None:
@@ -110,18 +115,19 @@ async def test_hundred_spans_split_into_three_batches_40_40_20() -> None:
     reqs = [request(f"p0_s{i}", entry) for i in range(100)]
     provider = FakeProvider(mode="correct")
 
-    results = await disambiguate_batch(reqs, provider, model="test-model", batch_size=40)
+    outcome = await disambiguate_batch(reqs, provider, model="test-model", batch_size=40)
 
-    assert len(results) == 100
+    assert len(outcome.results) == 100
     assert provider.call_count == 3
+    assert outcome.llm_calls == 3
 
 
 async def test_no_ask_spans_means_zero_provider_calls() -> None:
     provider = FakeProvider(mode="correct")
 
-    results = await disambiguate_batch([], provider, model="test-model")
+    outcome = await disambiguate_batch([], provider, model="test-model")
 
-    assert results == []
+    assert outcome.results == []
     assert provider.call_count == 0
 
 
@@ -135,9 +141,10 @@ async def test_cache_hit_avoids_second_provider_call() -> None:
     second = await disambiguate_batch(reqs, provider, model="test-model", cache=cache)
 
     assert provider.call_count == 1
-    assert first[0].decision is not None
-    assert second[0].decision is not None
-    assert first[0].decision.choice_index == second[0].decision.choice_index
+    assert second.cache_hits == 1
+    assert first.results[0].decision is not None
+    assert second.results[0].decision is not None
+    assert first.results[0].decision.choice_index == second.results[0].decision.choice_index
 
 
 async def test_changing_prompt_version_causes_cache_miss() -> None:

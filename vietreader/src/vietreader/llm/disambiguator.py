@@ -47,6 +47,13 @@ class DisambiguationResult:
     warning: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class DisambiguationOutcome:
+    results: list[DisambiguationResult]
+    llm_calls: int  # actual provider.disambiguate() invocations, including retries
+    cache_hits: int
+
+
 def cache_key(
     prompt_version: str, model: str, term: str, candidates: list[str], left: str, right: str
 ) -> str:
@@ -93,22 +100,24 @@ async def _call_batch_with_retry(
     temperature: float,
     max_tokens: int,
     max_retries: int,
-) -> dict[str, int]:
+) -> tuple[dict[str, int], int]:
     items = [
         DisambiguationItem(
             id=r.id, term=r.entry.surface, left=r.left, right=r.right, candidates=r.entry.candidates
         )
         for r in batch
     ]
+    calls_made = 0
     for _attempt in range(max_retries + 1):
+        calls_made += 1
         try:
             raw = await provider.disambiguate(items, temperature=temperature, max_tokens=max_tokens)
         except Exception:  # provider timeout/network error: treat as a failed attempt
             continue
         parsed = _try_parse_choices(raw, batch)
         if parsed is not None:
-            return parsed
-    return {}
+            return parsed, calls_made
+    return {}, calls_made
 
 
 def _build_decision(req: DisambiguationRequest, choice_index: int) -> AskDecision:
@@ -128,14 +137,16 @@ async def disambiguate_batch(
     batch_size: int = 40,
     max_retries: int = 2,
     cache: CacheBackend | None = None,
-) -> list[DisambiguationResult]:
+) -> DisambiguationOutcome:
     """Resolve every ASK request. Never calls the provider when `requests` is empty."""
     if not requests:
-        return []
+        return DisambiguationOutcome(results=[], llm_calls=0, cache_hits=0)
 
     results: dict[str, DisambiguationResult] = {}
     keys: dict[str, str] = {}
     to_call: list[DisambiguationRequest] = []
+    cache_hits = 0
+    llm_calls = 0
 
     for req in requests:
         key = cache_key(
@@ -144,6 +155,7 @@ async def disambiguate_batch(
         keys[req.id] = key
         cached_choice = cache.get(key) if cache is not None else None
         if cached_choice is not None:
+            cache_hits += 1
             results[req.id] = DisambiguationResult(
                 id=req.id, decision=_build_decision(req, cached_choice)
             )
@@ -152,9 +164,10 @@ async def disambiguate_batch(
 
     for batch in _chunk(to_call, batch_size):
         max_tokens = batch_size * 40
-        choices = await _call_batch_with_retry(
+        choices, calls_made = await _call_batch_with_retry(
             batch, provider, temperature=temperature, max_tokens=max_tokens, max_retries=max_retries
         )
+        llm_calls += calls_made
         for req in batch:
             choice_index = choices.get(req.id)
             if choice_index is None:
@@ -173,4 +186,6 @@ async def disambiguate_batch(
                 id=req.id, decision=_build_decision(req, choice_index)
             )
 
-    return [results[req.id] for req in requests]
+    return DisambiguationOutcome(
+        results=[results[req.id] for req in requests], llm_calls=llm_calls, cache_hits=cache_hits
+    )
