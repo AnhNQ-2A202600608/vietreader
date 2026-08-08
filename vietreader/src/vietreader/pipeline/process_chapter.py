@@ -56,6 +56,7 @@ class ProcessResult:
     warnings: list[str]
     status: Literal["ok", "validation_failed"]
     violations: list[str] = field(default_factory=list)
+    chapter_cache_id: int | None = None
 
 
 def _context(paragraph: str, span: Span, width: int = CONTEXT_WIDTH) -> tuple[str, str]:
@@ -129,6 +130,7 @@ async def process_chapter(
             stats=stats,
             warnings=[],
             status="ok",
+            chapter_cache_id=cached.id,
         )
 
     # 3. compile dictionary (CompiledDictionary.from_entries recomputes version_hash; caller
@@ -219,7 +221,7 @@ async def process_chapter(
         )
 
     # 6. cache + return
-    chapter_cache_repo.put(
+    cached_row = chapter_cache_repo.put(
         source_key=source_key,
         url=source_url,
         title=chapter.title,
@@ -239,4 +241,5 @@ async def process_chapter(
         stats=stats,
         warnings=warnings + result.warnings,
         status="ok",
+        chapter_cache_id=cached_row.id,
     )

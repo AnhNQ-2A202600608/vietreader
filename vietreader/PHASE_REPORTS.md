@@ -475,3 +475,81 @@ Không có ngoài phần đã nêu ở Assumptions.
 Không có.
 
 ## Ready for gate? YES
+
+---
+
+# PHASE 6 REPORT — HTTP API
+
+## Deliverables
+- `api/app.py` (52 dòng) — `create_app()` factory, wires DB engine/session, `AnthropicProvider`,
+  `Registry`, `Fetcher`, đăng ký router + exception handler
+- `api/deps.py` (36 dòng) — `AppState`, `get_session`, `get_app_state` (FastAPI `Depends`)
+- `api/errors.py` (42 dòng) — error envelope `{error:{code,message,hint}}` cho
+  `ExtractionError`/`FetchError` (422 + hint "Thử dán trực tiếp nội dung chương"),
+  `DictionaryEntryError` (400), `RequestValidationError` (422)
+- `api/routes/health.py` (17 dòng) — `GET /api/health`
+- `api/routes/chapters.py` (135 dòng) — `POST /api/chapters/process`, `GET /api/chapters/{id}`
+- `api/routes/dictionary.py` (195 dòng) — CRUD, `quick-add`, `import` (JSON + CSV), `export`
+- `api/routes/position.py` (48 dòng) — `GET`/`PUT /api/position/{series_key}`
+- `tests/integration/test_api.py` (202 dòng, 12 test) — toàn bộ endpoint qua
+  `httpx.AsyncClient` + `ASGITransport` (in-process, không network thật)
+- Bổ sung `ProcessResult.chapter_cache_id` vào `pipeline/process_chapter.py` (xem Assumptions)
+
+## Commands Run
+
+```
+$ .venv/Scripts/python.exe -m ruff check src tests
+All checks passed!
+
+$ .venv/Scripts/python.exe -m mypy src/vietreader/core
+Success: no issues found in 9 source files
+
+$ .venv/Scripts/python.exe -m pytest -q --cov=vietreader --cov-report=term-missing
+........................................................................ [ 74%]
+.........................                                                [100%]
+
+api/app.py             100%
+api/deps.py             100%
+api/errors.py            96%
+api/routes/chapters.py  100%
+api/routes/dictionary.py 99%
+api/routes/health.py    100%
+api/routes/position.py  100%
+TOTAL   1346 stmts, 34 miss, 97%
+97 passed, 1 deselected in 8.80s
+```
+
+## Acceptance Check
+- [x] Test tất cả endpoint bằng `httpx.AsyncClient`, PASS — PASS (12/12, dùng `ASGITransport`
+      thay cho tham số `app=` đã bị gỡ khỏi httpx 0.27 — xem Assumptions)
+- [x] OpenAPI schema sinh được, `/docs` load — PASS (`test_openapi_and_docs_load`)
+- [x] Test error path: URL sai (403 mock → `fetch_error` + hint), entry trùng surface (400
+      `dictionary_error`), entry REPLACE thiếu replacement (400 `dictionary_error`) — PASS
+
+## Assumptions
+- **`httpx.AsyncClient(app=...)` đã bị loại bỏ ở httpx 0.27** (phiên bản pin trong dependency
+  allowlist) — dùng `httpx.ASGITransport(app=app)` thay thế, đây là cách chính thức được
+  `httpx`/`FastAPI` khuyến nghị cho phiên bản này, không phải sai lệch kiến trúc.
+- **Ruff rule B008 (`Depends()` trong default argument) bị tắt riêng cho `src/vietreader/api/**`**
+  qua `per-file-ignores` — đây là pattern chính thức, bắt buộc của FastAPI (`Depends` PHẢI nằm ở
+  default argument để dependency-injection hoạt động), B008 chỉ đúng cho trường hợp mutable
+  default argument thông thường, không áp dụng được cho FastAPI.
+- **Bổ sung `ProcessResult.chapter_cache_id: int | None`** vào `pipeline/process_chapter.py`
+  (Phase 5) — cần thiết để `POST /api/chapters/process` trả về `id` cho client dùng lại với
+  `GET /api/chapters/{id}`; trường này không có trong spec §4 Phase 5 nhưng là hệ quả tất yếu
+  của việc endpoint `GET /api/chapters/{id}` (Phase 6) cần một id để tra cứu.
+- **Import CSV/JSON commit từng dòng một** (không phải 1 transaction cho cả batch) — để một dòng
+  lỗi (theo đúng yêu cầu "trả lỗi per-row, không abort cả batch") không khiến SQLAlchemy rollback
+  luôn các dòng đã tạo thành công trước đó trong cùng session (hành vi mặc định của
+  `session.rollback()` là rollback toàn bộ transaction đang mở, không phải chỉ thao tác vừa lỗi).
+- **`GET /api/dictionary/export`** trả JSON (không có tham số `?format=csv`) — spec không đặc tả
+  định dạng cụ thể cho export; JSON đối xứng với `import` (vốn hỗ trợ cả JSON và CSV ở input) là
+  lựa chọn tối thiểu hợp lý, không mở rộng thêm định dạng khi chưa được yêu cầu rõ.
+
+## Deviations
+Không có ngoài phần đã nêu ở Assumptions.
+
+## BLOCKER
+Không có.
+
+## Ready for gate? YES
