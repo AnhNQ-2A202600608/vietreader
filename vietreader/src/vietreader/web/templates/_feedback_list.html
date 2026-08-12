@@ -1,0 +1,44 @@
+{% if notes %}
+<ul class="list">
+  {% for n in notes %}
+  <li class="note {% if n.resolved %}is-resolved{% endif %}" style="padding: var(--s4) var(--s2);">
+    <p class="note-message">{{ n.message }}</p>
+
+    {% if n.quote %}
+    <blockquote class="note-quote">{{ n.quote }}</blockquote>
+    {% endif %}
+
+    <div class="list-meta">
+      {% if n.chapter_cache_id %}
+      <a href="/reader/{{ n.chapter_cache_id }}">{{ n.chapter_title or "Chương đã lưu" }}</a>
+      {% elif n.chapter_title %}
+      <span>{{ n.chapter_title }}</span>
+      {% else %}
+      <span>Không gắn với chương nào</span>
+      {% endif %}
+      {% if n.para_index is not none %}<span class="badge">đoạn {{ n.para_index + 1 }}</span>{% endif %}
+      {% if n.resolved %}<span class="badge ok">đã xử lý</span>{% endif %}
+    </div>
+
+    <div class="toolbar" style="margin-top: var(--s3);">
+      <form hx-patch="/feedback/{{ n.id }}" hx-target="#feedback-list" hx-swap="innerHTML">
+        <input type="hidden" name="resolved" value="{{ 'false' if n.resolved else 'true' }}">
+        <input type="hidden" name="show" value="{{ show }}">
+        <button type="submit">{{ "Mở lại" if n.resolved else "Đánh dấu đã xử lý" }}</button>
+      </form>
+      <button type="button" class="danger"
+        hx-delete="/feedback/{{ n.id }}?show={{ show }}"
+        hx-target="#feedback-list" hx-swap="innerHTML"
+        hx-confirm="Xoá ghi chú này?">Xoá</button>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="empty">
+  {% with size = "lg", mood = "happy" %}{% include "_mascot.html" %}{% endwith %}
+  <h2>Chưa có ghi chú nào</h2>
+  <p>Khi đang đọc, {{ reader_name }} bấm Mây ở góc phải (hoặc phím <code>f</code>)
+     để ghi lại chỗ nào thấy chưa ổn nhé.</p>
+</div>
+{% endif %}

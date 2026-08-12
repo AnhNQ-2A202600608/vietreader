@@ -29,7 +29,10 @@ def _to_out(position) -> PositionOut:  # type: ignore[no-untyped-def]
     )
 
 
-@router.get("/{series_key}", response_model=PositionOut)
+# `:path` because a series_key is a URL and therefore contains slashes. Without it the route
+# never matches for any chapter read from a URL -- percent-encoding does not help, since the
+# path is decoded before matching -- and reading positions silently fail to save or restore.
+@router.get("/{series_key:path}", response_model=PositionOut)
 async def get_position(series_key: str, session: Session = Depends(get_session)) -> PositionOut:
     repo = PositionRepo(session)
     position = repo.get(series_key)
@@ -38,7 +41,7 @@ async def get_position(series_key: str, session: Session = Depends(get_session))
     return _to_out(position)
 
 
-@router.put("/{series_key}", response_model=PositionOut)
+@router.put("/{series_key:path}", response_model=PositionOut)
 async def put_position(
     series_key: str, body: PositionUpdate, session: Session = Depends(get_session)
 ) -> PositionOut:

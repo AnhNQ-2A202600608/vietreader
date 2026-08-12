@@ -18,12 +18,69 @@ HTTP request thật (curl/httpx) tới server thật đang chạy + 11 test tự
 (bao gồm 1 test end-to-end quick-add thật), nhưng chưa có ai xác nhận trải nghiệm thị giác thật
 trong trình duyệt (bố cục, dark mode, popup quick-add khi bôi đen chuột thật, v.v.).
 
-## `make` không chạy được trên máy build
-Không có binary `make` trên máy Windows dùng để build (không Git-Bash-make/mingw32-make/nmake).
-Mọi lệnh trong `Makefile` đã được chạy trực tiếp (không qua `make`) và pass — bản thân `Makefile`
-đúng cú pháp — nhưng tiêu chí acceptance gốc dạng `make install && make test` chưa từng thực sự
-được gọi qua `make`. Cài `make` (qua Chocolatey/scoop/WSL) trước khi coi acceptance này là đã đạt
-100% theo đúng nghĩa đen.
+## `make` — ĐÃ GIẢI QUYẾT (Phase 10)
+Giới hạn này thuộc về máy Windows dùng để build ban đầu, không phải về code. Trên máy macOS hiện
+tại, `make lint`, `make typecheck`, `make test`, `make eval` đều đã được gọi THẬT qua `make` và
+exit 0, trên Python 3.12.13 (thay vì 3.11 như deviation Phase 0 ghi).
+
+## Tên chương: lấy từ trang trước, slug URL là phương án cuối
+Nhiều site đặt thẻ `<title>` của trang là TÊN BỘ TRUYỆN, nên tiêu đề trafilatura trả về khiến
+mọi chương trùng tên nhau. `extraction/chapter_title.py` tìm tên chương thật ngay trong trang
+(vế chương của thẻ `<title>`, `<h1>`, phần tử class `chapter-name`/`book-title`...) nên **giữ
+nguyên dấu tiếng Việt**.
+
+Chỉ khi trong trang không có chỗ nào nhắc đúng số chương thì mới suy từ slug URL — và slug vốn
+không dấu, nên ra "Chương 3 — Tai ach". Số chương luôn đúng, đủ để phân biệt và sắp xếp. Gặp
+trường hợp này thì viết adapter YAML cho site đó với selector trỏ thẳng vào thẻ tiêu đề chương.
+
+## Dò chương trước/sau là phỏng đoán
+`extraction/navigation.py` dựa vào `rel="next"/"prev"` và chữ trên liên kết. Sẽ trượt khi site
+dùng nút JS không phải thẻ `<a>`, khi chữ trên nút bất thường, hoặc khi trang có nhiều cụm điều
+hướng (ví dụ vừa có "chương sau" ở đầu vừa có ở cuối, trỏ khác nhau). Adapter YAML trong
+`config/sites/` vẫn là cách chính xác nhất cho site đọc thường xuyên. Khi cả hai đều không được,
+dùng ô "Sửa liên kết chương" ở cuối màn hình đọc để dán tay.
+
+## Nhóm bộ truyện là heuristic theo URL, không phải metadata thật
+Bộ truyện được suy ra bằng cách bỏ segment cuối của URL chương (`https://site/truyen-abc/chuong-5`
+→ `https://site/truyen-abc`). Đúng với đa số site truyện Việt, nhưng sẽ sai nếu:
+- Site đặt URL phẳng (`site.com/chuong-5`) → không nhận bộ nào, chương đứng lẻ (cố ý, xem
+  DECISIONS.md Phase 11).
+- Site đổi cấu trúc URL giữa chừng, hoặc cùng một truyện có nhiều đường dẫn khác nhau → bị tách
+  thành nhiều bộ. Phải đổi tên/gộp thủ công; chưa có chức năng gộp hai bộ làm một.
+
+Tên bộ mặc định lấy từ slug URL (`dau-pha-thuong-khung` → "Dau Pha Thuong Khung") nên thường
+thiếu dấu tiếng Việt — có nút đổi tên trong trang bộ truyện.
+
+## Thứ tự chương dựa vào số hiệu bắt được từ URL/tiêu đề
+Regex bắt các dạng `chuong-5`, `chapter 12`, `chap.7`. Chương không có số (ngoại truyện, lời tựa)
+xếp cuối theo thứ tự đọc lần đầu. Truyện đánh số kiểu `5.1`, `5b` hoặc dùng chữ ("chương năm")
+sẽ xếp sai.
+
+## Hai URL có nội dung trùng khít dùng chung một hàng cache
+`chapter_cache` khoá theo NỘI DUNG (`raw_hash + dict_version + prompt + model` — spec §2.4), nên
+hai URL khác nhau mà văn bản giống hệt sẽ dùng chung một hàng. Chương giữ bộ truyện được xếp
+LẦN ĐẦU và không bị di chuyển (xem DECISIONS.md Phase 11), nhưng hệ quả là URL thứ hai không có
+hàng riêng: nó hiện dưới bộ của URL thứ nhất. Gặp phải khi một chương truy cập được qua nhiều URL
+(có/không `/` cuối, `?page=1`, http/https), hoặc chương placeholder "nội dung đang cập nhật".
+Muốn xử lý triệt để phải tách "chương tại một URL" khỏi "kết quả xử lý một đoạn văn bản" thành
+hai bảng — thay đổi kiến trúc cache đã chốt, chưa làm.
+
+## Ghi chú (feedback) hoàn toàn cục bộ
+Không gửi đi đâu, không đồng bộ, không có thông báo. Đây là sổ tay trong file SQLite của bạn.
+Ghi chú trỏ tới `chapter_cache_id` cụ thể; nếu chương đó được xử lý lại sau khi sửa từ điển,
+bản ghi cache mới có id khác — ghi chú cũ vẫn trỏ tới bản cũ (vẫn mở được, nhưng là nội dung
+trước khi sửa).
+
+## Vị trí đọc chỉ chính xác tới cấp đoạn văn
+Vị trí được lưu/khôi phục theo chỉ số paragraph, không theo offset pixel hay câu. Khi mở lại, trang
+cuộn tới ĐẦU đoạn đang đọc dở chứ không đúng dòng đang nhìn. Với cỡ chữ rất lớn và đoạn văn dài,
+sai lệch có thể tới vài dòng. Đủ dùng cho đọc truyện, nhưng không phải khôi phục chính xác tuyệt đối.
+
+## Việc xử lý lại chương tích luỹ row trong `chapter_cache`
+Mỗi lần sửa từ điển rồi mở lại một chương sẽ sinh thêm một row cache mới cho cùng chương đó (cache
+key bao gồm `dict_version_hash` — đúng thiết kế). Thư viện đã gộp theo `raw_hash` nên người dùng
+chỉ thấy một mục, nhưng các row cũ KHÔNG bị dọn. Chưa có lệnh vacuum/dọn cache; với quy mô cá nhân
+thì không đáng lo, nhưng file DB sẽ lớn dần nếu bạn sửa từ điển rất thường xuyên.
 
 ## Word segmentation tiếng Việt
 Matcher (L1) dùng kiểm tra ký tự liền kề (word-boundary theo \w mở rộng), KHÔNG phân đoạn từ

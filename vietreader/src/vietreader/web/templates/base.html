@@ -1,28 +1,110 @@
 <!DOCTYPE html>
-<html lang="vi" data-theme="light">
+<html lang="vi">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}VietReader{% endblock %}</title>
+  {# reader_name đến từ context processor trong api/routes/web.py, có ở mọi template. #}
+  <title>{% block title %}Góc đọc của {{ reader_name }}{% endblock %}</title>
+  <script>
+    // Applied before first paint so the page never flashes the wrong theme or text size.
+    // Only UI preferences live in localStorage; reading data always goes through the API.
+    (function () {
+      try {
+        var saved = localStorage.getItem("vr-theme");
+        if (saved === "dark" || saved === "light") {
+          document.documentElement.dataset.theme = saved;
+        }
+        var size = localStorage.getItem("vr-font-size");
+        if (size) document.documentElement.style.setProperty("--reader-font-size", size + "rem");
+      } catch (e) { /* private mode: fall back to defaults */ }
+    })();
+  </script>
+  {# Để "Thêm vào màn hình chính" trên điện thoại ra một app thật, mở toàn màn hình,
+     thay vì một bookmark còn nguyên thanh địa chỉ Chrome. #}
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="icon" href="/static/icons/mascot.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icons/mascot.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="VietReader">
+  <meta name="theme-color" content="#fff8fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15111b" media="(prefers-color-scheme: dark)">
   <link rel="stylesheet" href="/static/css/style.css">
   <script src="/static/js/htmx.min.js" defer></script>
   <script src="/static/js/alpine.min.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </head>
 <body>
+  {% set path = request.url.path %}
   <header class="site-header">
-    <nav>
-      <a href="/">Đọc</a>
-      <a href="/dictionary">Từ điển</a>
-      <a href="/settings">Cài đặt</a>
+    <a class="brand" href="/">
+      {% with size = "sm", mood = "happy" %}{% include "_mascot.html" %}{% endwith %}
+      VietReader
+    </a>
+    <nav class="site-nav">
+      <a href="/" {% if path == "/" %}aria-current="page"{% endif %}>Đọc</a>
+      <a href="/batch" {% if path.startswith("/batch") %}aria-current="page"{% endif %}>Thêm nhiều</a>
+      <a href="/library" {% if path.startswith("/library") or path.startswith("/series") %}aria-current="page"{% endif %}>Thư viện</a>
+      <a href="/dictionary" {% if path.startswith("/dictionary") %}aria-current="page"{% endif %}>Từ điển</a>
+      <a href="/feedback" {% if path.startswith("/feedback") %}aria-current="page"{% endif %}>Ghi chú</a>
+      <a href="/settings" {% if path.startswith("/settings") %}aria-current="page"{% endif %}>Cài đặt</a>
     </nav>
-    <button type="button" onclick="
-      var html = document.documentElement;
-      html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
-    ">Sáng / Tối</button>
+    <div class="header-actions">
+      <button type="button" class="icon ghost" id="shortcuts-btn" title="Phím tắt (?)" aria-label="Phím tắt">?</button>
+      <button type="button" class="icon ghost" id="theme-btn" title="Sáng / tối (d)" aria-label="Đổi giao diện sáng tối">◐</button>
+    </div>
   </header>
+
   <main class="{% block main_class %}{% endblock %}">
     {% block content %}{% endblock %}
   </main>
+
+  <button type="button" class="fab" id="feedback-btn" title="Ghi chú nhanh (f)" aria-label="Ghi chú nhanh">
+    {% with size = "sm", mood = "reading" %}{% include "_mascot.html" %}{% endwith %}
+  </button>
+
+  <div class="feedback-panel" id="feedback-panel" hidden>
+    <div class="feedback-head">
+      {% with size = "sm", mood = "happy" %}{% include "_mascot.html" %}{% endwith %}
+      <h3>Mây nghe {{ reader_name }} nè</h3>
+    </div>
+    <p class="feedback-context" id="feedback-context">Không gắn với chương nào.</p>
+    <blockquote class="feedback-quote" id="feedback-quote" hidden></blockquote>
+
+    <form id="feedback-form" hx-post="/feedback" hx-target="#feedback-result" hx-swap="innerHTML">
+      <input type="hidden" name="chapter_cache_id" id="fb-chapter-id">
+      <input type="hidden" name="chapter_title" id="fb-chapter-title">
+      <input type="hidden" name="url" id="fb-url">
+      <input type="hidden" name="para_index" id="fb-para-index">
+      <input type="hidden" name="quote" id="fb-quote">
+      <div class="field">
+        <label for="fb-message">Bạn thấy gì?</label>
+        <textarea id="fb-message" name="message" rows="3"
+          placeholder="Ví dụ: chỗ này thay từ chưa hợp ngữ cảnh..." required></textarea>
+      </div>
+      <div class="toolbar">
+        <button type="submit" class="primary">Lưu ghi chú</button>
+        <button type="button" class="ghost" id="feedback-close">Đóng</button>
+      </div>
+      <div id="feedback-result"></div>
+    </form>
+  </div>
+
+  <div class="dialog" id="shortcuts-dialog" hidden>
+    <div class="dialog-panel">
+      <h3>Phím tắt</h3>
+      <dl class="shortcut-grid">
+        <dt>n</dt><dd>Chương sau</dd>
+        <dt>p</dt><dd>Chương trước</dd>
+        <dt>h</dt><dd>Bật / tắt tô màu từ đã thay</dd>
+        <dt>o</dt><dd>Xem / ẩn bản gốc</dd>
+        <dt>f</dt><dd>Ghi chú nhanh</dd>
+        <dt>+ / −</dt><dd>Cỡ chữ</dd>
+        <dt>d</dt><dd>Giao diện sáng / tối</dd>
+        <dt>?</dt><dd>Bảng phím tắt này</dd>
+        <dt>Esc</dt><dd>Đóng</dd>
+      </dl>
+      <button type="button" class="primary" id="shortcuts-close">Đóng</button>
+    </div>
+  </div>
 </body>
 </html>

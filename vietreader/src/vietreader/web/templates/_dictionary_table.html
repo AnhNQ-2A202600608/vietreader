@@ -1,47 +1,57 @@
-<table id="dict-table">
-  <thead>
-    <tr>
-      <th>Surface</th>
-      <th>Policy</th>
-      <th>Replacement / Candidates</th>
-      <th>Priority</th>
-      <th>Enabled</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for e in entries %}
-    <tr id="dict-row-{{ e.id }}">
-      <td>{{ e.display }}</td>
-      <td>{{ e.policy.value }}</td>
-      <td>
-        {% if e.policy.value == "replace" %}{{ e.replacement }}
-        {% elif e.policy.value == "ask" %}{{ e.candidates | join(", ") }}
-        {% else %}—{% endif %}
-      </td>
-      <td>
-        <form hx-patch="/dictionary/{{ e.id }}" hx-target="#dict-table-wrapper" hx-swap="innerHTML"
-          style="display:flex; gap:0.3rem; align-items:center;">
-          <input type="number" name="priority" value="{{ e.priority }}" style="width:4rem;">
-          <label>
-            <input type="checkbox" name="enabled" value="true" {% if e.enabled %}checked{% endif %}>
-            bật
-          </label>
-          <button type="submit">Lưu</button>
-        </form>
-      </td>
-      <td>{{ "✓" if e.enabled else "✗" }}</td>
-      <td>
-        <button type="button"
-          hx-delete="/dictionary/{{ e.id }}"
-          hx-target="#dict-table-wrapper" hx-swap="innerHTML"
-          hx-confirm="Xoá {{ e.display }}?">
-          Xoá
-        </button>
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="6">Chưa có entry nào.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% if entries %}
+<div class="table-wrap">
+  <table id="dict-table">
+    <thead>
+      <tr>
+        <th>Surface</th>
+        <th>Policy</th>
+        <th>Replacement / Candidates</th>
+        <th>Ưu tiên &amp; bật</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr id="dict-row-{{ e.id }}">
+        <td>{{ e.display }}</td>
+        <td>
+          <span class="badge {% if e.policy.value == 'keep' %}ok{% elif e.policy.value == 'replace' %}accent{% endif %}">
+            {{ e.policy.value | upper }}
+          </span>
+        </td>
+        <td>
+          {% if e.policy.value == "replace" %}{{ e.replacement }}
+          {% elif e.policy.value == "ask" %}{{ e.candidates | join(", ") }}
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td>
+          <form class="toolbar" hx-patch="/dictionary/{{ e.id }}"
+                hx-target="#dict-table-wrapper" hx-swap="innerHTML">
+            <input type="number" name="priority" value="{{ e.priority }}"
+                   aria-label="Ưu tiên" style="width: 4.5rem;">
+            <label class="text-sm">
+              <input type="checkbox" name="enabled" value="true" {% if e.enabled %}checked{% endif %}
+                     style="width: auto;">
+              bật
+            </label>
+            <button type="submit">Lưu</button>
+          </form>
+        </td>
+        <td>
+          <button type="button" class="danger"
+            hx-delete="/dictionary/{{ e.id }}"
+            hx-target="#dict-table-wrapper" hx-swap="innerHTML"
+            hx-confirm="Xoá {{ e.display }}?">Xoá</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">
+  {% with size = "md", mood = "sleepy" %}{% include "_mascot.html" %}{% endwith %}
+  <h2>Không có entry nào</h2>
+  <p>Thêm entry ở trên, hoặc nạp từ điển mẫu bằng <code>scripts/seed_dictionary.py</code>.</p>
+</div>
+{% endif %}

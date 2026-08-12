@@ -1,0 +1,23 @@
+{% if queue %}
+<div class="batch-run">
+  <p class="eyebrow">Đang xử lý {{ total }} chương</p>
+  <ul class="list batch-list" id="batch-results">
+    {# Mồi đầu tiên: tự chạy khi được nạp vào trang, rồi mỗi bước tự đẻ ra mồi tiếp theo.
+       Dùng <form> chứ không phải hx-include: form luôn gửi TẤT CẢ input bên trong, còn
+       hx-include="find input" chỉ lấy đúng cái đầu tiên nên done/total bị rơi mất. #}
+    <li class="batch-pending">
+      <form hx-post="/batch/step" hx-trigger="load" hx-target="closest li" hx-swap="outerHTML">
+        <input type="hidden" name="urls" value="{{ queue | join('\n') }}">
+        <input type="hidden" name="done" value="0">
+        <input type="hidden" name="total" value="{{ total }}">
+        <span class="spinner-dot"></span> Đang tải chương đầu tiên…
+      </form>
+    </li>
+  </ul>
+</div>
+{% else %}
+<div class="empty">
+  <h2>Chưa có địa chỉ nào hợp lệ</h2>
+  <p>Mỗi dòng một địa chỉ, phải bắt đầu bằng <code>http://</code> hoặc <code>https://</code>.</p>
+</div>
+{% endif %}

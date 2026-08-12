@@ -8,6 +8,11 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./vietreader.db"
 
+    # Tên người đọc, dùng cho lời chào và các trạng thái rỗng.
+    # Đổi bằng VIETREADER_READER_NAME trong .env.
+    reader_name: str = "Ngân Giang"
+
+
     llm_provider: str = "anthropic"
     llm_model: str = "claude-haiku-4-5-20251001"
     llm_api_key: str = ""

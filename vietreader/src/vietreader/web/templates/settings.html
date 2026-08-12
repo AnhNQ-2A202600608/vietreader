@@ -1,20 +1,53 @@
 {% extends "base.html" %}
 {% block title %}Cài đặt — VietReader{% endblock %}
+{% block main_class %}wide{% endblock %}
 {% block content %}
 <h1>Cài đặt</h1>
-<p style="color: var(--muted);">Chỉ đọc — sửa qua biến môi trường (<code>config/settings.example.env</code>).</p>
+<p class="muted text-sm">
+  Chỉ đọc. Sửa bằng biến môi trường trong <code>.env</code>
+  (xem <code>config/settings.example.env</code>), rồi khởi động lại server.
+</p>
 
-<table>
-  <tbody>
-    <tr><th>LLM provider</th><td>{{ settings.llm_provider }}</td></tr>
-    <tr><th>Model</th><td>{{ settings.llm_model }}</td></tr>
-    <tr><th>Prompt version</th><td>{{ prompt_version }}</td></tr>
-    <tr><th>Temperature</th><td>{{ settings.llm_temperature }}</td></tr>
-    <tr><th>Batch size</th><td>{{ settings.llm_batch_size }}</td></tr>
-    <tr><th>Max retries (LLM)</th><td>{{ settings.llm_max_retries }}</td></tr>
-    <tr><th>User-Agent (fetch)</th><td>{{ settings.fetch_user_agent }}</td></tr>
-    <tr><th>Delay giữa request (giây)</th><td>{{ settings.fetch_delay_seconds }}</td></tr>
-    <tr><th>Timeout fetch (giây)</th><td>{{ settings.fetch_timeout_seconds }}</td></tr>
-  </tbody>
-</table>
+<div class="panel">
+  <h2>Người đọc</h2>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr>
+          <th>Tên hiển thị</th>
+          <td>{{ settings.reader_name }} <span class="badge accent">VIETREADER_READER_NAME</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Mô hình ngôn ngữ</h2>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th>Provider</th><td>{{ settings.llm_provider }}</td></tr>
+        <tr><th>Model</th><td>{{ settings.llm_model }}</td></tr>
+        <tr><th>Prompt version</th><td>{{ prompt_version }}</td></tr>
+        <tr><th>Temperature</th><td>{{ settings.llm_temperature }}</td></tr>
+        <tr><th>Batch size</th><td>{{ settings.llm_batch_size }}</td></tr>
+        <tr><th>Max retries</th><td>{{ settings.llm_max_retries }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Tải trang</h2>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th>User-Agent</th><td class="break-all">{{ settings.fetch_user_agent }}</td></tr>
+        <tr><th>Delay giữa request</th><td>{{ settings.fetch_delay_seconds }} giây</td></tr>
+        <tr><th>Timeout</th><td>{{ settings.fetch_timeout_seconds }} giây</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

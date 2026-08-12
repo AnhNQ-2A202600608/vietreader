@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Ghi chú — VietReader{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+<h1>Ghi chú khi đọc</h1>
+<p class="muted text-sm">
+  Những gì bạn ghi lại khi đang đọc, kèm chương và đoạn tương ứng. Lưu hoàn toàn trên máy bạn,
+  không gửi đi đâu cả.
+</p>
+
+<div class="toolbar" style="margin: var(--s4) 0;">
+  <a class="btn {{ 'primary' if show == 'open' else '' }}" href="/feedback?show=open">
+    Chưa xử lý{% if open_count %} ({{ open_count }}){% endif %}
+  </a>
+  <a class="btn {{ 'primary' if show == 'done' else '' }}" href="/feedback?show=done">Đã xử lý</a>
+  <a class="btn {{ 'primary' if show not in ('open', 'done') else '' }}" href="/feedback?show=all">Tất cả</a>
+</div>
+
+<div id="feedback-list">
+  {% include "_feedback_list.html" %}
+</div>
+{% endblock %}

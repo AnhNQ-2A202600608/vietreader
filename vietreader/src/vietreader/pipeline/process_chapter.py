@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Literal
 
 from vietreader.core.applier import apply_changes
@@ -113,6 +113,18 @@ async def process_chapter(
     if cached is not None:
         changelog = [_change_from_dict(c) for c in json.loads(cached.changelog_json)]
         output_paragraphs = cached.output_text.split(PARAGRAPH_SEP)
+        # Reopening a chapter counts as reading it: keeps the library ordered by activity.
+        chapter_cache_repo.touch(cached.id)
+        # The page is the authority on its own title. A chapter cached before the extractor
+        # learned to read chapter headings kept a stale title (often the whole novel's name);
+        # refresh it here so old entries heal on the next visit instead of staying wrong.
+        if source_url and chapter.title and chapter.title != cached.title:
+            chapter_cache_repo.set_title(cached.id, chapter.title)
+            cached = replace(cached, title=chapter.title)
+        # A pasted chapter has no navigation of its own; recover whatever was captured when
+        # the chapter was first extracted so "next chapter" still works from the library.
+        if chapter.next_url is None and chapter.prev_url is None:
+            chapter = replace(chapter, next_url=cached.next_url, prev_url=cached.prev_url)
         duration_ms = (time.monotonic() - start) * 1000
         stats = ProcessStats(
             span_count=len(changelog),
@@ -232,6 +244,8 @@ async def process_chapter(
         dict_version_hash=dict_version_hash,
         prompt_version=prompt_version,
         model=model,
+        next_url=chapter.next_url,
+        prev_url=chapter.prev_url,
     )
 
     return ProcessResult(

@@ -105,10 +105,14 @@ def validate(
         for entry in keep_entries:
             in_count = input_counts.get(entry.id, 0)
             out_count = output_counts.get(entry.id, 0)
-            if in_count != out_count:
+            # I6 protects KEEP terms from being destroyed, so only a DROP is a violation.
+            # A replacement whose text happens to contain a KEEP term raises the count without
+            # touching any original occurrence -- failing the whole chapter for that would make
+            # ordinary dictionary edits silently disable reading. See DECISIONS.md Phase 10.
+            if out_count < in_count:
                 violations.append(
                     f"I6: KEEP term {entry.surface!r} occurs {in_count} times in input "
-                    f"but {out_count} times in output"
+                    f"but only {out_count} times in output (a protected term was lost)"
                 )
 
     input_len = sum(len(p) for p in input_paragraphs)

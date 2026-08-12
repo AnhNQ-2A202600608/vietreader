@@ -169,6 +169,66 @@ async def test_dictionary_change_causes_cache_miss(db_session: Session) -> None:
     assert provider.call_count == 1
 
 
+async def test_chapter_navigation_is_persisted_and_survives_a_cache_hit(
+    db_session: Session,
+) -> None:
+    """The library reopens chapters from cache, so 'next chapter' has to come from the DB
+    rather than from a fresh parse of the source page."""
+    entries = _seed_dictionary(db_session)
+    dict_version_hash = CompiledDictionary.from_entries(entries).version_hash
+    provider = FakeProvider(mode="correct", choose={"p0_s0": 0})
+    fetcher = Fetcher(user_agent="test-agent", delay_seconds=0, transport=_quotes_transport())
+    repo = ChapterCacheRepo(db_session)
+    kwargs = dict(
+        source_url=QUOTES_URL,
+        raw_text=None,
+        title=None,
+        dictionary_entries=entries,
+        dict_version_hash=dict_version_hash,
+        prompt_version="v1",
+        model="test-model",
+        provider=provider,
+        chapter_cache_repo=repo,
+        run_log_repo=RunLogRepo(db_session),
+        llm_cache=LLMCacheRepo(db_session),
+        registry=Registry(sites_dir=CONFIG_SITES),
+        fetcher=fetcher,
+    )
+
+    first = await process_chapter(**kwargs)
+    db_session.commit()
+
+    assert first.chapter.next_url is not None
+    stored = repo.get_by_id(first.chapter_cache_id)
+    assert stored is not None
+    assert stored.next_url == first.chapter.next_url
+
+    second = await process_chapter(**kwargs)
+    db_session.commit()
+    assert second.stats.from_cache is True
+    assert second.chapter.next_url == first.chapter.next_url
+
+
+async def test_reopening_a_chapter_updates_its_reading_recency(db_session: Session) -> None:
+    repo = ChapterCacheRepo(db_session)
+    older = repo.put(
+        source_key="k-old", url=None, title="Cũ", raw_hash="h1", raw_text="a",
+        output_text="a", changelog_json="[]", dict_version_hash="d", prompt_version="v1",
+        model="m",
+    )
+    newer = repo.put(
+        source_key="k-new", url=None, title="Mới", raw_hash="h2", raw_text="b",
+        output_text="b", changelog_json="[]", dict_version_hash="d", prompt_version="v1",
+        model="m",
+    )
+    db_session.commit()
+    assert [c.id for c in repo.list_recent()][0] == newer.id
+
+    repo.touch(older.id)
+    db_session.commit()
+    assert [c.id for c in repo.list_recent()][0] == older.id
+
+
 async def test_validator_failure_returns_raw_text_and_does_not_cache(db_session: Session) -> None:
     entries = _seed_dictionary(db_session)
     dict_version_hash = CompiledDictionary.from_entries(entries).version_hash

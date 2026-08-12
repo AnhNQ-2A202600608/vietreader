@@ -1,0 +1,24 @@
+<div id="series-header">
+  <p class="eyebrow">Bộ truyện</p>
+  <h1>{{ series.title }}</h1>
+  <p class="list-meta">
+    <span>{{ series.chapter_count }} chương</span>
+    <span class="truncate break-all">{{ series.series_key }}</span>
+  </p>
+
+  <div class="toolbar" style="margin-top: var(--s3);">
+    <form hx-post="/series/{{ series.id }}/follow" hx-target="#series-header" hx-swap="outerHTML">
+      <input type="hidden" name="followed" value="{{ 'false' if series.followed else 'true' }}">
+      <button type="submit" class="{{ '' if series.followed else 'primary' }}">
+        {{ "Bỏ theo dõi" if series.followed else "Theo dõi" }}
+      </button>
+    </form>
+
+    <form class="toolbar" hx-patch="/series/{{ series.id }}" hx-target="#series-header"
+          hx-swap="outerHTML">
+      <input type="text" name="title" value="{{ series.title }}" aria-label="Tên bộ truyện"
+             style="width: 16rem;">
+      <button type="submit">Đổi tên</button>
+    </form>
+  </div>
+</div>

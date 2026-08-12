@@ -1,0 +1,16 @@
+{
+  "name": "VietReader",
+  "short_name": "VietReader",
+  "description": "Trợ lý đọc truyện tiếng Việt",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff8fb",
+  "theme_color": "#fff8fb",
+  "lang": "vi",
+  "icons": [
+    { "src": "/static/icons/mascot.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/static/icons/mascot.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

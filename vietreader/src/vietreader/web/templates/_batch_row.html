@@ -1,0 +1,40 @@
+{% if url %}
+<li class="batch-row {{ 'is-error' if not ok else '' }}">
+  <span class="batch-num">{{ done }}/{{ total }}</span>
+  <span class="list-main">
+    {% if ok %}
+      <span class="list-title truncate">
+        {% if chapter_id %}<a href="/reader/{{ chapter_id }}">{{ title or "(không có tiêu đề)" }}</a>
+        {% else %}{{ title or "(không có tiêu đề)" }}{% endif %}
+      </span>
+      <span class="list-meta">
+        {% if series %}<a href="/series/{{ series.id }}">{{ series.title }}</a>{% endif %}
+        <span class="truncate break-all">{{ url }}</span>
+      </span>
+    {% else %}
+      <span class="list-title truncate">Không tải được</span>
+      <span class="list-meta"><span class="truncate break-all">{{ url }}</span></span>
+      <span class="list-meta">{{ error }}</span>
+    {% endif %}
+  </span>
+  {% if not ok %}<span class="badge">lỗi</span>
+  {% elif already_had %}<span class="badge">đã có sẵn</span>
+  {% else %}<span class="badge ok">mới thêm</span>{% endif %}
+</li>
+{% endif %}
+
+{% if not finished %}
+<li class="batch-pending">
+  <form hx-post="/batch/step" hx-trigger="load" hx-target="closest li" hx-swap="outerHTML">
+    <input type="hidden" name="urls" value="{{ remaining }}">
+    <input type="hidden" name="done" value="{{ done }}">
+    <input type="hidden" name="total" value="{{ total }}">
+    <span class="spinner-dot"></span> Đang tải chương tiếp theo…
+  </form>
+</li>
+{% else %}
+<li class="batch-done">
+  <strong>Xong.</strong> Vào <a href="/library">Thư viện</a> để đọc — các chương đã được xếp
+  theo đúng số thứ tự trong bộ.
+</li>
+{% endif %}

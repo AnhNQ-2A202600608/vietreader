@@ -141,6 +141,26 @@ def test_i6_fails_when_keep_occurrence_removed() -> None:
     assert any(v.startswith("I6:") for v in result.violations)
 
 
+def test_i6_allows_replacement_that_introduces_a_keep_term() -> None:
+    """I6 guards against LOSING a protected term, not against gaining one.
+
+    A user can legitimately add REPLACE "tu sĩ" -> "linh lực gia" while "linh lực" is KEEP.
+    No original occurrence is harmed, so the chapter must still process. Before this rule was
+    relaxed, this combination hard-failed every chapter containing "tu sĩ".
+    """
+    d = CompiledDictionary.from_entries(
+        [
+            entry(1, "linh lực", Policy.KEEP),
+            entry(2, "tu sĩ", Policy.REPLACE, replacement="linh lực gia"),
+        ]
+    )
+    paragraphs = ["Một tu sĩ bước vào."]
+    output, changes, spans_by_para = _match_resolve_apply(paragraphs, d, _no_ask)
+    result = validate(paragraphs, output, changes, d, spans_by_para)
+    assert output == ["Một linh lực gia bước vào."]
+    assert result.ok, result.violations
+
+
 def test_i7_warns_but_does_not_fail_on_long_replacement() -> None:
     d = CompiledDictionary.from_entries(
         [entry(1, "lão", Policy.REPLACE, replacement="một ông lão già nua rất là")]

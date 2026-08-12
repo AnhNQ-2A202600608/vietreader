@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ series.title }} — VietReader{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+
+{% include "_series_header.html" %}
+
+{% if continue_chapter %}
+<a class="continue-card" href="/reader/{{ continue_chapter.id }}" style="margin-top: var(--s5);">
+  <p class="eyebrow">Đang đọc dở</p>
+  <p class="continue-title">{{ continue_chapter.title or "(không có tiêu đề)" }}</p>
+  {% if position and position.para_index %}
+  <p class="continue-meta">Dừng ở đoạn {{ position.para_index + 1 }}</p>
+  {% endif %}
+</a>
+{% endif %}
+
+<div class="section-title">
+  <h2>Danh sách chương</h2>
+  <span class="text-sm muted">{{ chapters | length }} chương đã xử lý</span>
+</div>
+
+{% if chapters %}
+<ul class="list">
+  {% for c in chapters %}
+  <li>
+    <a class="list-row chapter-row {% if current_url and c.url == current_url %}is-current{% endif %}"
+       href="/reader/{{ c.id }}">
+      <span class="chapter-num">{{ loop.index }}</span>
+      <span class="list-main">
+        <span class="list-title truncate">{{ c.title or "(không có tiêu đề)" }}</span>
+        {% if c.url %}<span class="list-meta"><span class="truncate break-all">{{ c.url }}</span></span>{% endif %}
+      </span>
+      {% if current_url and c.url == current_url %}<span class="badge accent">Đang đọc</span>{% endif %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<div class="empty">
+  <p>Bộ này chưa có chương nào được xử lý.</p>
+</div>
+{% endif %}
+{% endblock %}

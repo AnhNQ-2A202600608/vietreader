@@ -12,6 +12,7 @@ import pytest
 from vietreader.extraction.base import ExtractionError, from_raw_text
 from vietreader.extraction.config_adapter import ConfigAdapter, SiteConfig
 from vietreader.extraction.fetcher import Fetcher, FetchError
+from vietreader.extraction.generic import GenericExtractor
 from vietreader.extraction.registry import Registry
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "html"
@@ -55,6 +56,33 @@ def test_no_adapter_falls_back_to_generic_still_gets_paragraphs() -> None:
 
     assert chapter.paragraphs
     assert "Hoàn Kiếm" in chapter.title
+
+
+def test_generic_extractor_keeps_paragraph_breaks() -> None:
+    """The generic path must not return one wall of text.
+
+    trafilatura joins blocks with a single newline, so splitting on blank lines (as the shared
+    normalizer does) collapsed every chapter into a single paragraph -- on every site without
+    an adapter, which is the default path. Asserting only "paragraphs is non-empty" let that
+    through, so assert the actual structure.
+    """
+    paragraphs = [
+        "Lão giả ngồi im dưới gốc tùng già, mắt khép hờ như đang ngủ, chẳng buồn nhìn ai.",
+        "Thiếu niên đứng chờ từ sáng sớm, tay siết chặt vạt áo, không dám lên tiếng hỏi han.",
+        "Mãi tới khi bóng nắng ngả hẳn sang phía đông, lão mới chậm rãi mở mắt ra nhìn.",
+        "Gió thổi qua rừng tùng, mang theo hơi lạnh của núi cao và mùi nhựa cây hăng nồng.",
+    ]
+    body = "".join(f"<p>{p}</p>" for p in paragraphs)
+    html = (
+        "<html><head><meta charset='utf-8'><title>Chương 1</title></head>"
+        f"<body><article><h1>Chương 1</h1>{body}</article></body></html>"
+    )
+
+    chapter = GenericExtractor().extract(html, "https://example.com/truyen/chuong-1")
+
+    assert len(chapter.paragraphs) == len(paragraphs)
+    # The heading must not be repeated as the first body paragraph.
+    assert chapter.paragraphs[0] != chapter.title
 
 
 def test_strip_selectors_removes_configured_clutter() -> None:

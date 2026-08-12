@@ -157,6 +157,30 @@ async def test_position_get_missing_then_put_then_get(client: AsyncClient) -> No
     }
 
 
+async def test_position_works_for_a_url_series_key(client: AsyncClient) -> None:
+    """A real series key IS a URL, so it contains slashes.
+
+    The route needs a `:path` parameter to match at all -- percent-encoding does not save it,
+    because the path is decoded before routing. Until this was fixed, saving and restoring the
+    reading position silently 404'd for every chapter opened from a URL, which is most of them.
+    """
+    series_key = "https://truyenfull.vn/dau-pha-thuong-khung"
+
+    put = await client.put(
+        f"/api/position/{series_key}",
+        json={"url": f"{series_key}/chuong-5", "para_index": 12},
+    )
+    assert put.status_code == 200
+
+    got = await client.get(f"/api/position/{series_key}")
+    assert got.status_code == 200
+    assert got.json() == {
+        "series_key": series_key,
+        "url": f"{series_key}/chuong-5",
+        "para_index": 12,
+    }
+
+
 async def test_chapters_process_raw_text_then_get_by_id(client: AsyncClient) -> None:
     resp = await client.post("/api/chapters/process", json={"raw_text": "Xin chào thế giới."})
     assert resp.status_code == 200

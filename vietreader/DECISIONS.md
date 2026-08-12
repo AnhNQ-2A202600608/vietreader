@@ -98,3 +98,168 @@ Ghi ngắn gọn mọi assumption/deviation phát sinh trong quá trình agent t
   mới), nên không coi là mở rộng scope — chỉ là pin rõ ràng một phụ thuộc vốn đã ngầm cần thiết.
   Đã xác minh lại: clone sạch → cài đặt → test/lint/typecheck/eval đều PASS sau khi thêm dòng
   này. Xem PHASE_REPORTS.md Phase 9 cho log đầy đủ.
+
+## Phase 10 — Trải nghiệm đọc (sau bàn giao, theo yêu cầu người dùng)
+
+- **[Phase 10] I6 đổi từ "số lần xuất hiện phải BẰNG" sang "không được GIẢM" — deviation có chủ
+  đích so với work order §3.5, được người dùng phê duyệt.** Lý do: I6 nguyên bản hard-fail cả
+  chương khi một replacement vô tình SINH RA một KEEP term (ví dụ REPLACE "tu sĩ" → "linh lực gia"
+  trong khi "linh lực" là KEEP), dù không occurrence gốc nào bị đụng tới. Hậu quả thực tế: một
+  thao tác quick-add hợp lệ từ màn hình đọc làm mọi chương chứa từ đó im lặng ngừng xử lý và rơi
+  về raw text — mà quick-add lại là workflow trung tâm của UI. Mục đích của I6 là BẢO VỆ thuật
+  ngữ khỏi bị phá, nên chỉ chiều "mất đi" mới là vi phạm. Phương án thay thế đã cân nhắc: giữ
+  nguyên I6 và chặn từ lúc ghi entry — không chọn vì nó cấm một cấu hình từ điển vốn hoàn toàn
+  hợp lệ, và không xử lý được trường hợp hai entry độc lập vô tình tổ hợp thành KEEP term.
+  Test `test_i6_allows_replacement_that_introduces_a_keep_term` khoá hành vi mới;
+  `test_i6_fails_when_keep_occurrence_removed` vẫn giữ nguyên, chứng minh chiều bảo vệ còn nguyên.
+- **[Phase 10] `chapter_cache.last_read_at` để nullable.** SQLite cấm `DEFAULT CURRENT_TIMESTAMP`
+  trên `ADD COLUMN NOT NULL`, nên cột NOT NULL sẽ làm migration vỡ trên DB đã có dữ liệu. NULL
+  mang nghĩa "chưa mở lại", `list_recent()` fallback về `created_at`. Đã kiểm chứng thật:
+  upgrade → chèn row bằng schema cũ → upgrade → downgrade → upgrade đều sạch.
+- **[Phase 10] `HX-Push-Url` thay vì để chương sống trong fragment.** Trước đây `POST /read`
+  swap innerHTML mà không đổi địa chỉ, nên refresh/back/bookmark đều mất chương. Nay response
+  kèm `HX-Push-Url: /reader/{id}` (chỉ khi chương được cache, tức validation PASS). Phương án
+  thay thế: redirect 303 — không dùng vì sẽ mất lợi thế swap không reload của HTMX.
+- **[Phase 10] `series_key` cho chương dán tay đổi từ hằng `"raw"` thành `"chapter:{id}"`.**
+  Mọi chương dán tay trước đây dùng chung một khoá nên ghi đè vị trí đọc của nhau.
+- **[Phase 10] `list_recent()` gộp theo `raw_hash`.** Cache key gồm `dict_version_hash`, nên mỗi
+  lần sửa từ điển lại sinh thêm một row cho CÙNG một chương; thư viện liệt kê thô sẽ đầy bản
+  trùng. Gộp ở tầng đọc (giữ nguyên mọi row trong DB, chỉ hiện bản mới nhất) thay vì xoá row cũ —
+  không phá cơ chế cache, vẫn cho phép cache hit khi người dùng quay lại phiên bản từ điển cũ.
+- **[Phase 10] `POST /reader/{id}/reprocess` luôn dựng lại từ `raw_text` đã lưu, không fetch
+  lại site.** Khi quick-add xong, thứ thay đổi là TỪ ĐIỂN chứ không phải nội dung chương — fetch
+  lại vừa thừa vừa có thể fail nếu site sập. Vì `raw_text` không mang link điều hướng,
+  `set_navigation()` chuyển `next_url`/`prev_url` từ row cũ sang row mới.
+- **[Phase 10] localStorage được dùng cho theme và cỡ chữ.** Work order §Phase 7 cấm localStorage
+  cho "dữ liệu quan trọng"; theme/cỡ chữ là tuỳ chọn hiển thị thuần tuý, mất đi không tổn hại gì,
+  và cần đọc được TRƯỚC khi trang vẽ lần đầu để không nháy màu. Vị trí đọc — thứ thực sự quan
+  trọng — vẫn đi hoàn toàn qua API như quy định.
+- **[Phase 11] Mô hình "bộ truyện" — ý tưởng mượn từ TruyenDex, KHÔNG tích hợp code.**
+  Người dùng đề nghị tích hợp `github.com/zennomi/truyendex`. Sau khi nghiên cứu: TruyenDex là
+  trình đọc truyện TRANH (ảnh từ API MangaDex, Next.js/TypeScript), MangaDex chỉ trả ảnh trang
+  và không hỗ trợ light novel — nên **không có văn bản nào cho pipeline L1–L5 xử lý**, và không
+  dòng code nào dùng lại được (work order §1.1 vốn đã từ chối Next.js). Thay vì ghép hai ứng
+  dụng không liên quan, chỉ lấy ý tưởng giá trị nhất: bộ truyện gom nhiều chương, theo dõi được,
+  tiến độ đọc theo bộ. Đã báo cáo điểm vênh này và được người dùng chốt hướng.
+- **[Phase 11] `reading_position.series_key` nay trỏ tới BỘ TRUYỆN, không phải từng chương.**
+  Bảng này vốn đã có `series_key + url + para_index` từ Phase 5 — tức là đã được thiết kế cho
+  đúng mô hình này, chỉ thiếu việc `series_key` thực sự là một bộ. Nay vị trí đọc mang nghĩa
+  "đang ở chương nào của bộ, đoạn nào". Chương dán tay (không suy ra được bộ) vẫn dùng
+  `chapter:{id}` như Phase 10. Hệ quả ở client: khi khôi phục vị trí, JS chỉ cuộn nếu
+  `position.url` trùng chương đang mở — vì vị trí có thể trỏ sang chương khác cùng bộ.
+- **[Phase 11] Suy ra bộ truyện bằng cách bỏ path segment cuối của URL chương**
+  (`core/series.py`, thuần, không I/O). Cố ý bảo thủ: nếu URL chỉ có ≤1 segment thì KHÔNG nhận
+  bộ nào (trả `None`), để chương đứng riêng — thay vì gom mọi truyện trên cùng một host vào một
+  "bộ" giả. Sắp xếp chương theo số hiệu bắt được từ URL/tiêu đề (`chuong-5`, `chapter 12`…),
+  chương không có số thì giữ thứ tự xuất hiện ở cuối. Phương án thay thế: bắt người dùng tự tạo
+  bộ và gán chương — không chọn vì thêm thao tác thủ công cho thứ suy ra được đúng trong đa số
+  trường hợp; bù lại có nút đổi tên khi heuristic đặt tên xấu.
+- **[Phase 11] `feedback` là ghi chú CỤC BỘ, không gửi đi đâu.** App chạy local một người dùng,
+  không có server nào phía sau để nhận góp ý, nên "ô feedback" được hiện thực hoá thành sổ ghi
+  chú gắn với chương + đoạn + câu đang bôi đen, có trang `/feedback` để xử lý dần. Đây là dạng
+  hữu ích duy nhất trong kiến trúc offline hiện tại, và nối thẳng vào vòng lặp tỉa từ điển.
+- **[Phase 11] Migration dùng `batch_alter_table` cho `chapter_cache.series_id`.** SQLite không
+  `ALTER TABLE ... ADD CONSTRAINT` được, nên bản autogenerate (`create_foreign_key`) sẽ hỏng.
+  Batch mode dựng lại bảng kèm foreign key, giữ schema khớp đúng ORM để các lần autogenerate sau
+  không liên tục phát hiện thiếu FK. Đã kiểm chứng thật trên DB *có sẵn dữ liệu*.
+- **[Phase 11] SỬA LỖI CÓ TỪ TRƯỚC: `/api/position/{series_key}` cần `:path`.** `series_key`
+  là một URL nên chứa dấu `/`; route một-segment không bao giờ khớp, và percent-encoding không
+  cứu được vì path đã được giải mã trước khi định tuyến. Hệ quả: **vị trí đọc âm thầm 404 với
+  mọi chương đọc bằng URL** kể từ Phase 7 — chỉ chương dán tay (khoá `chapter:{id}`, không có
+  `/`) mới chạy. Test cũ dùng khoá `series-1` không dấu `/` nên không bắt được; đã thêm
+  `test_position_works_for_a_url_series_key` dùng khoá URL thật.
+- **[Phase 11] SỬA LỖI: gán bộ truyện không được phép DI CHUYỂN chương đã có bộ.** `chapter_cache`
+  khoá theo NỘI DUNG, nên hai URL có văn bản trùng khít dùng chung một hàng. Trước khi có guard,
+  mở URL thứ hai sẽ kéo hàng đó sang bộ khác — bộ ban đầu mất một chương, và sinh ra một bộ rỗng
+  ma. Nay hàng giữ nguyên bộ đã được xếp lần đầu. Cùng gốc lỗi này còn xảy ra ở tình huống phổ
+  biến hơn: một chương truy cập được qua hai URL (có/không `/` cuối, `?page=1`, http/https).
+  Phát hiện khi chạy thật với site giả trên máy, không phải từ test.
+- **[Phase 11] SỬA LỖI CÓ TỪ PHASE 4: `GenericExtractor` dồn cả chương thành MỘT đoạn.**
+  `trafilatura` phân tách khối bằng MỘT ký tự `\n`, nhưng `generic.py` dùng `split_paragraphs()`
+  vốn tách theo DÒNG TRỐNG — nên mọi chương đọc từ site chưa có adapter (tức đường mặc định cho
+  mọi site mới) hiện ra thành một khối chữ liền, mất hết ngắt đoạn. Trafilatura cũng lặp tiêu đề
+  vào khối đầu của thân bài. Nay tách theo từng dòng và bỏ dòng đầu nếu trùng tiêu đề. Test cũ
+  chỉ assert `chapter.paragraphs` khác rỗng nên một khối khổng lồ vẫn pass; đã thêm
+  `test_generic_extractor_keeps_paragraph_breaks` assert đúng số đoạn.
+  **Phát hiện bằng cách chụp màn hình giao diện thật và nhìn** — không test nào bắt được.
+- **[Phase 11] SỬA LỖI CSS: `.position-note[hidden]`.** Thuộc tính `hidden` của HTML bị quy tắc
+  `display: flex` của chính stylesheet ghi đè, nên ô "đã quay lại đoạn N" luôn hiện thành một
+  hộp xám RỖNG phía trên mọi chương. Cũng chỉ lộ ra qua ảnh chụp.
+- **[Phase 11] Tên chương lấy từ TRONG TRANG để giữ dấu tiếng Việt** (`extraction/chapter_title.py`).
+  Suy từ slug URL cho ra "Tai ach" mất dấu — không chấp nhận được với tiếng Việt. Tên chương thật
+  gần như luôn có sẵn trong trang: vế chương của thẻ `<title>` ("Tên truyện - Chương 3 tai ách"),
+  `<h1>`, hoặc phần tử class `chapter-name`/`book-title`. Chỉ nhận ứng viên nhắc ĐÚNG số chương
+  của URL (để danh sách chương ở sidebar không cướp mất tiêu đề), và trong số đó lấy chuỗi NGẮN
+  NHẤT — phần tử bao ngoài hay dính cả tên truyện lẫn tên chương, phần tử đúng chỗ thì không.
+  Slug URL tụt xuống thành phương án cuối.
+- **[Phase 11] Chương đã lưu tự cập nhật tiêu đề khi mở lại.** Cache khoá theo nội dung nên mở
+  lại một chương cũ là cache hit và giữ nguyên tiêu đề cũ — các chương lưu trước khi có
+  `chapter_title.py` sẽ mắc kẹt với tên bộ truyện mãi mãi. Nay ở nhánh cache hit, nếu trang trả
+  về tiêu đề khác thì ghi đè: trang là nguồn đúng về tên của chính nó. Đã kiểm chứng trên dữ liệu
+  thật của người dùng — 4 chương từ "Ta Không Phải Hí Thần" tự sửa thành tên chương có dấu đầy đủ.
+- **[Phase 11] Tên chương suy từ URL khi trang dùng tên bộ truyện làm `<title>`.** Phát hiện từ
+  dữ liệu dùng thật của người dùng: 4 chương liên tiếp của một bộ đều mang đúng một tiêu đề (tên
+  bộ truyện), khiến danh sách chương nhìn như bị lưu trùng lặp dù mỗi chương chỉ có một bản ghi.
+  `chapter_display_title()` chỉ can thiệp khi tiêu đề KHÔNG hề nhắc tới số chương mà URL thì có
+  — tiêu đề đã rõ ràng thì để nguyên. Áp ở cả `GenericExtractor` (dữ liệu mới) lẫn `_row_to_entry`
+  (các chương đã lưu tự chữa khi đọc lên, không cần migration hay xử lý lại).
+- **[Phase 11] SỬA LỖI: regex số chương nhận nhầm "%C3" trong URL percent-encode.** Nhánh `c`
+  đứng lẻ khiến `.../H%E1%BB%93_Ho%C3%A0n_Ki%E1%BA%BFm` bị đọc thành "chương 3". Đã bỏ nhánh `c`
+  và thêm lookbehind chặn từ khoá lọt giữa một từ khác. Test fixture Wikipedia bắt được lỗi này.
+- **[Phase 11] Dò chương trước/sau tự động cho MỌI site, không cần adapter.** Trước đó
+  `GenericExtractor` hardcode `next_url=None, prev_url=None`, nên **không site truyện thật nào
+  có nút chuyển chương** — chỉ site đã viết `config/sites/<domain>.yml` mới có, mà cả repo mới
+  có đúng một file cho `quotes.toscrape.com` (site test). `extraction/navigation.py` dò theo
+  `rel="next"/"prev"` rồi tới chữ trên liên kết ("Chương sau", không dấu "chuong sau", "Next",
+  mũi tên »/›), chấm điểm theo độ đặc hiệu để một liên kết không bị nhận thành cả hai chiều, bỏ
+  qua liên kết trỏ về chính trang đang đọc. Adapter YAML vẫn thắng khi có, vì nó chính xác hơn.
+- **[Phase 11] Sửa tay liên kết chương: `POST /reader/{id}/navigation`.** Dò tự động chỉ là
+  phỏng đoán, và có site chuyển chương bằng JS nên URL không đổi — lúc đó không có gì để dò.
+  Màn hình đọc có ô dán thẳng địa chỉ chương trước/sau, tự mở sẵn khi chưa dò ra được. Lưu vào
+  `chapter_cache.next_url/prev_url` nên giữ nguyên qua các lần mở lại.
+
+- **[Phase 11] Làm lại bảng màu bản TỐI.** Bản tối đầu tiên bị chê xấu; chụp lại từng màn hình
+  để soi thì thấy bốn lỗi, sửa từ token chứ không vá từng chỗ:
+  1. *Nền loang lổ*: hai vệt radial-gradient dùng màu quá đậm (`#4a1f3d`, `#2c2350`) tạo mảng
+     nâu tím bẩn vắt ngang đầu trang. Trên nền tối, vệt màu phải nhạt hơn nhiều so với bản sáng —
+     đã hạ xuống `#241830` / `#1a1a30`.
+  2. *Nút hồng chói*: dùng chung `--accent` (hồng neon, vốn chọn để chữ đọc rõ trên nền tối) làm
+     nền nút nên đập vào mắt. Tách token `--btn-a`/`--btn-b`: chữ và liên kết giữ hồng sáng, còn
+     mảng đặc dùng hồng trầm với chữ trắng.
+  3. *Linh vật thành cục đen*: `.mascot .cloud` tô bằng `--surface-2` nên ở bản tối Mây tối thui.
+     Tách token `--mascot-fill` để bản tối cho Mây sáng hơn nền.
+  4. *Từ đã thay ngả nâu bẩn* kèm gạch chân hồng gắt: tách `--hl-line-*` để bản tối dùng đường
+     kẻ trầm hơn, và đổi nền viên tô sang sắc mận thay vì nâu.
+- **[Phase 11] Bỏ Georgia khỏi font đọc — nó thiếu ký tự tiếng Việt.** Georgia không có khối
+  Latin Extended Additional (U+1EA0–U+1EF9: ầ ữ ợ ể ộ ự...), nên trình duyệt phải mượn glyph từ
+  font khác cho đúng những chữ CÓ DẤU — trong cùng một từ, chữ có dấu nhạt và hẹp hơn chữ không
+  dấu. Với tiếng Việt thì gần như chữ nào cũng có dấu, nên cả trang chữ nhìn lệch nét.
+  Đã dựng trang so sánh và chụp lại để kiểm chứng bằng mắt: Palatino, Charter, Iowan Old Style
+  còn hỏng nặng hơn (dấu tách rời khỏi chữ, trôi sang bên); Hoefler Text, Baskerville,
+  Times New Roman thì đều nét. Chốt `--font-read: "Hoefler Text", Baskerville,
+  "Times New Roman", "Noto Serif", serif` — mọi mắt xích trong chuỗi đều có dấu tiếng Việt dựng
+  sẵn, và chuỗi này phủ được cả macOS, Windows lẫn Linux.
+  Cũng bỏ `"Quicksand"` khỏi `--font-ui`: nó không hề được cài kèm (nên là cấu hình chết), mà
+  bản thân nó cũng thiếu dấu tiếng Việt nếu ai đó cài vào.
+- **[Phase 11] Nhận diện "Mây hồng" + linh vật, theo yêu cầu người dùng.** Bảng màu chuyển sang
+  tông hồng (sáng: hồng phấn trên nền trắng ngả hồng; tối: nền mận đậm, điểm hồng tươi). Nguyên
+  tắc giữ được tính đọc lâu: **trang trí chỉ đặt ở phần khung** (header, thẻ, nút, badge, linh
+  vật) — riêng `.reader-text` giữ nền phẳng, không gradient, tương phản cao, vì đó là chỗ mắt ở
+  lại lâu nhất. Dùng hai sắc hồng tách biệt: `--accent` (#c2185b) đậm đủ tương phản cho chữ và
+  nút, `--accent-bright` chỉ cho mảng trang trí — không bao giờ dùng cho chữ nhỏ.
+- **[Phase 11] Linh vật "Mây" là SVG tự vẽ, đặt trong `_mascot.html`.** Một tinh linh mây, hợp
+  chủ đề tiên hiệp. Tự vẽ bằng path để không dùng nhân vật/hình ảnh có bản quyền của bên nào, và
+  để tô màu bằng biến CSS nên tự đổi theo sáng/tối. Có 3 trạng thái (`happy`/`sleepy`/`reading`)
+  bật tắt bằng CSS trên cùng một khối SVG, thay vì 3 file riêng. Xuất hiện ở: logo, thẻ "Tiếp
+  tục đọc", nút ghi chú, và các trạng thái rỗng.
+- **[Phase 11] Hiệu ứng đều nằm sau `prefers-reduced-motion`.** Mây bồng bềnh, sao lấp lánh, nút
+  nhún khi bấm, thẻ nhấc lên khi rê chuột, popup bung nhẹ — toàn bộ `animation`/`transform` bị
+  tắt hoàn toàn khi người dùng bật giảm chuyển động trong hệ điều hành.
+- **[Phase 11] Giao diện được thiết kế lại thành design system trong CSS thuần** (token màu,
+  thang cách `--s1..s7`, thang chữ, bo góc, đổ bóng; component card/list/badge/empty-state/
+  dialog; responsive ≤640px; `prefers-reduced-motion`). Không thêm build toolchain nào, đúng
+  ràng buộc §1.1 — Tailwind/PostCSS sẽ vi phạm dependency allowlist.
+- **[Phase 10] `data-theme` không còn hardcode trong `base.html`.** Giá trị `"light"` cứng trước
+  đây có specificity cao hơn `@media (prefers-color-scheme: dark)`, khiến dark mode hệ thống
+  KHÔNG BAO GIỜ áp dụng. Nay thuộc tính chỉ được đặt khi người dùng chọn tường minh, và khối
+  media query được guard bằng `:root:not([data-theme="light"])`.

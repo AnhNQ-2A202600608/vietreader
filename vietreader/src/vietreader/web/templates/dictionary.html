@@ -2,44 +2,69 @@
 {% block title %}Từ điển — VietReader{% endblock %}
 {% block main_class %}wide{% endblock %}
 {% block content %}
-<h1>Quản lý từ điển</h1>
+<h1>Từ điển</h1>
+<p class="muted text-sm">
+  <strong>KEEP</strong> bảo vệ thuật ngữ · <strong>REPLACE</strong> thay cố định ·
+  <strong>ASK</strong> để LLM chọn trong các phương án.
+</p>
 
-<form class="toolbar"
-  hx-get="/dictionary/table" hx-target="#dict-table-wrapper" hx-swap="innerHTML" hx-trigger="submit, change">
-  <select name="policy">
-    <option value="">Tất cả policy</option>
-    <option value="keep">KEEP</option>
-    <option value="replace">REPLACE</option>
-    <option value="ask">ASK</option>
-  </select>
-  <input type="text" name="search" placeholder="Tìm surface...">
-  <button type="submit">Lọc</button>
-</form>
-
-<h2>Thêm entry mới</h2>
-<form class="toolbar"
-  hx-post="/dictionary/create" hx-target="#dict-table-wrapper" hx-swap="innerHTML">
-  <input type="text" name="surface" placeholder="surface" required>
-  <input type="text" name="display" placeholder="display (mặc định = surface)">
-  <select name="policy">
-    <option value="keep">KEEP</option>
-    <option value="replace">REPLACE</option>
-    <option value="ask">ASK</option>
-  </select>
-  <input type="text" name="replacement" placeholder="replacement (REPLACE)">
-  <input type="text" name="candidates" placeholder="candidates, phân cách bằng dấu phẩy (ASK)">
-  <button type="submit" class="primary">Thêm</button>
-</form>
-
-<h2>Import / Export</h2>
-<div class="toolbar">
-  <a class="btn" href="/api/dictionary/export" target="_blank">Export JSON</a>
+<div class="panel">
+  <h2>Thêm entry</h2>
+  <form hx-post="/dictionary/create" hx-target="#dict-table-wrapper" hx-swap="innerHTML">
+    <div class="field">
+      <label for="new-surface">Surface (chữ thường, không dấu newline)</label>
+      <input type="text" id="new-surface" name="surface" placeholder="lão giả" required>
+    </div>
+    <div class="field">
+      <label for="new-display">Hiển thị (mặc định = surface)</label>
+      <input type="text" id="new-display" name="display" placeholder="lão giả">
+    </div>
+    <div class="field">
+      <label for="new-policy">Policy</label>
+      <select id="new-policy" name="policy">
+        <option value="keep">KEEP — không bao giờ thay</option>
+        <option value="replace">REPLACE — thay bằng một từ</option>
+        <option value="ask">ASK — hỏi LLM</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="new-replacement">Replacement (bắt buộc với REPLACE)</label>
+      <input type="text" id="new-replacement" name="replacement" placeholder="ông lão">
+    </div>
+    <div class="field">
+      <label for="new-candidates">Candidates (ASK — ít nhất 2, phân cách bằng dấu phẩy)</label>
+      <input type="text" id="new-candidates" name="candidates" placeholder="đạo hữu, bạn, vị này">
+    </div>
+    <button type="submit" class="primary">Thêm entry</button>
+  </form>
 </div>
-<form class="toolbar" hx-post="/dictionary/import-csv" hx-target="#dict-table-wrapper" hx-swap="innerHTML"
-  hx-encoding="multipart/form-data">
-  <input type="file" name="csv_file" accept=".csv">
-  <button type="submit">Import CSV</button>
-</form>
+
+<div class="panel">
+  <h2>Lọc</h2>
+  <form class="toolbar" hx-get="/dictionary/table" hx-target="#dict-table-wrapper"
+        hx-swap="innerHTML" hx-trigger="submit, change, keyup changed delay:300ms from:input">
+    <select name="policy" style="width: auto;">
+      <option value="">Tất cả policy</option>
+      <option value="keep">KEEP</option>
+      <option value="replace">REPLACE</option>
+      <option value="ask">ASK</option>
+    </select>
+    <input type="search" name="search" placeholder="Tìm surface…" style="width: 14rem;">
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Import / Export</h2>
+  <div class="toolbar">
+    <a class="btn" href="/api/dictionary/export" target="_blank" rel="noopener">Export JSON</a>
+  </div>
+  <form class="toolbar" style="margin-top: var(--s3);"
+        hx-post="/dictionary/import-csv" hx-target="#dict-table-wrapper" hx-swap="innerHTML"
+        hx-encoding="multipart/form-data">
+    <input type="file" name="csv_file" accept=".csv" style="width: auto;">
+    <button type="submit">Import CSV</button>
+  </form>
+</div>
 
 <div id="dict-table-wrapper">
   {% include "_dictionary_table.html" %}

@@ -1,25 +1,74 @@
 {% extends "base.html" %}
-{% block title %}VietReader — Đọc{% endblock %}
+{% block title %}Góc đọc của {{ reader_name }}{% endblock %}
 {% block content %}
-<h1>Đọc chương mới</h1>
 
-<form hx-post="/read" hx-target="#reader-container" hx-swap="innerHTML" hx-indicator="#loading">
-  <div class="field-row">
+<section class="greeting">
+  {% with size = "md", mood = greeting_mood %}{% include "_mascot.html" %}{% endwith %}
+  <div>
+    <h1 class="greeting-title">{{ greeting }}, {{ reader_name }}</h1>
+    <p class="greeting-sub">{{ greeting_sub }}</p>
+  </div>
+</section>
+
+{% if continue_chapter %}
+<a class="continue-card" href="/reader/{{ continue_chapter.id }}">
+  {% with size = "md", mood = "reading" %}{% include "_mascot.html" %}{% endwith %}
+  <span class="continue-body">
+    <span class="eyebrow">Tiếp tục đọc</span>
+    <p class="continue-title">{{ continue_chapter.title or "(không có tiêu đề)" }}</p>
+    <p class="continue-meta">
+      {% if continue_series %}{{ continue_series.title }} · {{ continue_series.chapter_count }} chương
+      {% elif continue_chapter.url %}{{ continue_chapter.url }}
+      {% else %}Dán trực tiếp{% endif %}
+    </p>
+  </span>
+</a>
+{% endif %}
+
+<h2>Đọc chương mới</h2>
+
+<form class="panel" hx-post="/read" hx-target="#reader-container" hx-swap="innerHTML"
+      hx-indicator="#loading">
+  <div class="field">
     <label for="url">URL chương</label>
     <input type="url" id="url" name="url" placeholder="https://...">
   </div>
-  <p style="color: var(--muted); margin: 0.5rem 0;">— hoặc —</p>
-  <div class="field-row">
-    <label for="raw_text">Dán nội dung chương trực tiếp</label>
+
+  <p class="or-divider">hoặc</p>
+
+  <div class="field">
+    <label for="raw_text">Dán nội dung chương</label>
     <textarea id="raw_text" name="raw_text" placeholder="Dán nội dung ở đây..."></textarea>
   </div>
-  <div class="field-row">
+  <div class="field">
     <label for="title">Tiêu đề (tuỳ chọn)</label>
     <input type="text" id="title" name="title">
   </div>
-  <button type="submit" class="primary">Đọc</button>
-  <span id="loading" class="htmx-indicator">Đang xử lý...</span>
+
+  <div class="toolbar">
+    <button type="submit" class="primary">Đọc</button>
+    <span id="loading" class="htmx-indicator">Đang xử lý…</span>
+  </div>
 </form>
+
+{% if recent %}
+<div class="section-title">
+  <h2>Gần đây</h2>
+  <a class="text-sm" href="/library">Toàn bộ thư viện →</a>
+</div>
+<ul class="list">
+  {% for c in recent %}
+  <li>
+    <a class="list-row" href="/reader/{{ c.id }}">
+      <span class="list-main">
+        <span class="list-title truncate">{{ c.title or "(không có tiêu đề)" }}</span>
+      </span>
+      {% if c.next_url %}<span class="badge">có chương sau</span>{% endif %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
 
 <div id="reader-container"></div>
 {% endblock %}

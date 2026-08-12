@@ -1,224 +1,992 @@
+/* ============================================================================
+   VietReader — hệ thiết kế "Mây hồng"
+   ----------------------------------------------------------------------------
+   Trang trí dồn vào phần khung (header, thẻ, nút, linh vật). Cột chữ của chương
+   giữ nền phẳng và tương phản cao, vì đó là chỗ mắt phải ở lại lâu nhất.
+   ========================================================================= */
+
 :root {
-  --bg: #fbfaf7;
-  --fg: #1d1b16;
-  --muted: #6b6559;
-  --border: #ddd6c9;
-  --accent: #8a5a34;
-  --highlight-replace: #fde9c8;
-  --highlight-llm: #dbe9fd;
-  --highlight-keep: #ddf5e0;
-  --banner-bg: #fde0e0;
-  --banner-fg: #7a1f1f;
+  /* --- colour ------------------------------------------------------------ */
+  --bg: #fff8fb;
+  --bg-tint-a: #ffd9ea;
+  --bg-tint-b: #e6dcff;
+  --surface: #fff0f6;
+  --surface-2: #ffe3ef;
+  --fg: #40202f;
+  --muted: #8d6377;
+  --border: #ffd4e4;
+
+  /* Hồng đậm cho nút/liên kết (đủ tương phản với chữ trắng);
+     hồng tươi chỉ dùng cho mảng trang trí, không bao giờ cho chữ nhỏ. */
+  --accent: #c2185b;
+  --accent-bright: #ff6fae;
+  --accent-soft: #ffe4ef;
+  --accent-fg: #ffffff;
+
+  --lilac: #8b6fd4;
+  --mint: #2e8b74;
+  --mint-soft: #d8f5ec;
+  --gold: #b8860b;
+
+  --ok: #2e8b57;
+  --ok-soft: #d9f5e4;
+  --warn-fg: #a4133c;
+  --warn-bg: #ffe0e8;
+
+  --highlight-replace: #ffe0ef;
+  --highlight-llm: #e6ddff;
+  --hl-line-replace: var(--accent-bright);
+  --hl-line-llm: var(--lilac);
+
+  /* Nút và mảng đặc: tách khỏi --accent để bản tối dịu đi được mà chữ/liên kết vẫn sáng rõ. */
+  --btn-a: var(--accent);
+  --btn-b: var(--accent-bright);
+
+  --mascot-fill: var(--surface-2);
+
+  /* --- spacing ----------------------------------------------------------- */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+
+  /* --- shape & depth ----------------------------------------------------- */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+  --shadow-1: 0 2px 8px rgba(194, 24, 91, 0.08);
+  --shadow-2: 0 12px 32px rgba(194, 24, 91, 0.18);
+  --shadow-lift: 0 8px 20px rgba(194, 24, 91, 0.16);
+
+  /* --- type -------------------------------------------------------------- */
+  /* Mọi font trong hai chuỗi này đều có SẴN bộ ký tự tiếng Việt dựng sẵn.
+     Georgia bị loại: nó thiếu khối Latin Extended Additional (ầ ữ ợ ể ộ...), nên trình duyệt
+     phải mượn glyph từ font khác — chữ có dấu lệch nét so với chữ không dấu ngay trong cùng
+     một từ, nhìn như bị vỡ. Palatino/Charter/Iowan còn tệ hơn: dấu tách rời khỏi chữ.
+     Quicksand cũng bị loại vì không được cài kèm và bản thân nó thiếu dấu tiếng Việt. */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+             Arial, sans-serif;
+  --font-read: "Hoefler Text", Baskerville, "Times New Roman", "Noto Serif", serif;
+  --t-xs: 0.75rem;
+  --t-sm: 0.85rem;
+  --t-md: 0.95rem;
+  --t-lg: 1.15rem;
+  --t-xl: 1.4rem;
+  --t-2xl: 1.9rem;
+
+  --reader-font-size: 1.15rem;
+  --reader-width: 70ch;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1b1a17;
-    --fg: #ece7db;
-    --muted: #a39d8c;
-    --border: #3a372e;
-    --accent: #d9a05b;
-    --highlight-replace: #4a3c1f;
-    --highlight-llm: #1f3348;
-    --highlight-keep: #1f3a24;
-    --banner-bg: #4a1f1f;
-    --banner-fg: #f5c6c6;
+  :root:not([data-theme="light"]) {
+    --bg: #15111b;
+    /* Hai vệt màu nền phải RẤT nhạt ở bản tối: đậm một chút là thành mảng loang bẩn. */
+    --bg-tint-a: #241830;
+    --bg-tint-b: #1a1a30;
+    --surface: #1f1927;
+    --surface-2: #2b2436;
+    --fg: #f0e8f2;
+    --muted: #ab9bb5;
+    --border: #3a3147;
+
+    /* Hồng sáng cho chữ và liên kết (đọc rõ trên nền tối)... */
+    --accent: #ff9dc4;
+    --accent-bright: #ffb3d4;
+    --accent-soft: #33223a;
+    /* ...nhưng nút thì dùng hồng trầm hơn với chữ trắng, thay vì hồng neon chói mắt. */
+    --btn-a: #b8447d;
+    --btn-b: #d4649c;
+    --accent-fg: #ffffff;
+
+    --lilac: #b9a3f0;
+    --mint: #7fd6bd;
+    --mint-soft: #1e3b36;
+    --gold: #e0b354;
+
+    --ok: #7fd6a0;
+    --ok-soft: #1f3a2a;
+    --warn-fg: #ffb3c4;
+    --warn-bg: #4a1c2a;
+
+    --highlight-replace: #3b2a3f;
+    --highlight-llm: #272348;
+    --hl-line-replace: #a85583;
+    --hl-line-llm: #6f5fa8;
+
+    /* Mây phải sáng hơn nền, nếu không thành một cục đen mất hết nét dễ thương. */
+    --mascot-fill: #6d4d69;
+
+    --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.45);
+    --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.6);
+    --shadow-lift: 0 8px 20px rgba(0, 0, 0, 0.5);
   }
 }
 
-html[data-theme="dark"] {
-  --bg: #1b1a17;
-  --fg: #ece7db;
-  --muted: #a39d8c;
-  --border: #3a372e;
-  --accent: #d9a05b;
-  --highlight-replace: #4a3c1f;
-  --highlight-llm: #1f3348;
-  --highlight-keep: #1f3a24;
-  --banner-bg: #4a1f1f;
-  --banner-fg: #f5c6c6;
+:root[data-theme="dark"] {
+  --bg: #15111b;
+  /* Hai vệt màu nền phải RẤT nhạt ở bản tối: đậm một chút là thành mảng loang bẩn. */
+  --bg-tint-a: #241830;
+  --bg-tint-b: #1a1a30;
+  --surface: #1f1927;
+  --surface-2: #2b2436;
+  --fg: #f0e8f2;
+  --muted: #ab9bb5;
+  --border: #3a3147;
+
+  /* Hồng sáng cho chữ và liên kết (đọc rõ trên nền tối)... */
+  --accent: #ff9dc4;
+  --accent-bright: #ffb3d4;
+  --accent-soft: #33223a;
+  /* ...nhưng nút thì dùng hồng trầm hơn với chữ trắng, thay vì hồng neon chói mắt. */
+  --btn-a: #b8447d;
+  --btn-b: #d4649c;
+  --accent-fg: #ffffff;
+
+  --lilac: #b9a3f0;
+  --mint: #7fd6bd;
+  --mint-soft: #1e3b36;
+  --gold: #e0b354;
+
+  --ok: #7fd6a0;
+  --ok-soft: #1f3a2a;
+  --warn-fg: #ffb3c4;
+  --warn-bg: #4a1c2a;
+
+  --highlight-replace: #3b2a3f;
+  --highlight-llm: #272348;
+  --hl-line-replace: #a85583;
+  --hl-line-llm: #6f5fa8;
+
+  /* Mây phải sáng hơn nền, nếu không thành một cục đen mất hết nét dễ thương. */
+  --mascot-fill: #6d4d69;
+
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
-html[data-theme="light"] {
-  --bg: #fbfaf7;
-  --fg: #1d1b16;
-  --muted: #6b6559;
-  --border: #ddd6c9;
-  --accent: #8a5a34;
-  --highlight-replace: #fde9c8;
-  --highlight-llm: #dbe9fd;
-  --highlight-keep: #ddf5e0;
-  --banner-bg: #fde0e0;
-  --banner-fg: #7a1f1f;
-}
+/* ============================ base ====================================== */
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
+  min-height: 100vh;
   background: var(--bg);
+  /* Hai vệt màu rất nhạt ở góc, cố định để không trôi theo lúc cuộn. */
+  background-image:
+    radial-gradient(60rem 30rem at 12% -8%, var(--bg-tint-a), transparent 60%),
+    radial-gradient(50rem 26rem at 92% 4%, var(--bg-tint-b), transparent 62%);
+  background-attachment: fixed;
   color: var(--fg);
-  font-family: -apple-system, "Segoe UI", sans-serif;
-}
-
-header.site-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-header.site-header nav a {
-  color: var(--fg);
-  text-decoration: none;
-  margin-right: 1rem;
-  font-size: 0.95rem;
-}
-
-header.site-header nav a:hover {
-  color: var(--accent);
-}
-
-main {
-  max-width: 70ch;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
-}
-
-.wide {
-  max-width: 900px;
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
 }
 
 h1, h2, h3 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-read);
+  line-height: 1.25;
+  margin: 0 0 var(--s3);
 }
 
+h1 { font-size: var(--t-2xl); }
+h2 { font-size: var(--t-xl); }
+h3 { font-size: var(--t-lg); }
+
+a { color: var(--accent); }
+
+main {
+  max-width: var(--reader-width);
+  margin: 0 auto;
+  padding: var(--s5) var(--s4) var(--s7);
+}
+
+main.wide { max-width: 960px; }
+
+.muted { color: var(--muted); }
+.text-sm { font-size: var(--t-sm); }
+
+/* ============================ mascot ==================================== */
+
+.mascot { display: block; overflow: visible; }
+.mascot-sm { width: 2.2rem; height: auto; }
+.mascot-md { width: 5rem; height: auto; }
+.mascot-lg { width: 8.5rem; height: auto; }
+
+.mascot .cloud {
+  fill: var(--mascot-fill);
+  stroke: var(--accent-bright);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.mascot .blush { fill: var(--accent-bright); opacity: 0.55; }
+.mascot .eye { fill: var(--fg); }
+.mascot .eye-shine { fill: #fff; opacity: 0.9; }
+
+.mascot .mouth,
+.mascot .eyes-closed path {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.mascot .sparkle { fill: var(--accent-bright); }
+.mascot .book-page { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
+.mascot .book-spine { fill: var(--accent); }
+
+/* Biến thể tâm trạng */
+.mascot .eyes-closed,
+.mascot .mascot-book { display: none; }
+.mascot-sleepy .eyes { display: none; }
+.mascot-sleepy .eyes-closed { display: block; }
+.mascot-reading .mascot-book { display: block; }
+
+/* Chuyển động rất nhẹ: mây bồng bềnh, sao lấp lánh so le nhau. */
+.mascot-md .mascot-body,
+.mascot-lg .mascot-body {
+  animation: float 4.5s ease-in-out infinite;
+  transform-origin: 50% 60%;
+}
+
+.mascot .sparkle { animation: twinkle 2.8s ease-in-out infinite; transform-origin: center; }
+.mascot .sparkle-2 { animation-delay: 0.9s; }
+.mascot .sparkle-3 { animation-delay: 1.7s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+/* ============================ header ==================================== */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s3) var(--s5);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  /* Flex item mặc định không co dưới bề rộng nội dung; mở khoá để header không đẩy trang tràn. */
+  min-width: 0;
+  font-family: var(--font-read);
+  font-size: var(--t-lg);
+  font-weight: 700;
+  color: var(--fg);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand:hover .mascot-body { animation-play-state: paused; transform: rotate(-6deg); }
+.brand .mascot { transition: transform 200ms ease; }
+.brand:hover .mascot { transform: rotate(-8deg) scale(1.08); }
+
+.site-nav { display: flex; gap: var(--s1); flex-wrap: wrap; min-width: 0; }
+
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-pill);
+  color: var(--fg);
+  text-decoration: none;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.site-nav a:hover { background: var(--surface); color: var(--accent); }
+
+.site-nav a[aria-current="page"] {
+  background: linear-gradient(135deg, var(--btn-a), var(--btn-b));
+  color: var(--accent-fg);
+  box-shadow: var(--shadow-1);
+}
+
+.header-actions { display: flex; gap: var(--s1); flex-shrink: 0; }
+
+/* ============================ controls ================================== */
+
+button, .btn {
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 140ms ease, background 140ms ease,
+              border-color 140ms ease, box-shadow 140ms ease;
+}
+
+button:hover, .btn:hover {
+  background: var(--surface);
+  border-color: var(--accent-bright);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-1);
+}
+
+button:active, .btn:active { transform: translateY(0) scale(0.97); }
+
+button.primary, .btn.primary {
+  background: linear-gradient(135deg, var(--btn-a), var(--btn-b));
+  border-color: transparent;
+  color: var(--accent-fg);
+  box-shadow: var(--shadow-1);
+}
+
+button.primary:hover, .btn.primary:hover {
+  box-shadow: var(--shadow-lift);
+  background: linear-gradient(135deg, var(--btn-a), var(--btn-b));
+}
+
+button.ghost { border-color: transparent; background: transparent; }
+button.icon { padding: 0.45rem 0.65rem; }
+button.danger:hover { border-color: var(--warn-fg); color: var(--warn-fg); }
+
+button:focus-visible, .btn:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 3px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+
+input[type="text"], input[type="url"], input[type="number"],
+input[type="search"], textarea, select {
+  font: inherit;
+  font-size: var(--t-sm);
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--r-sm);
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  outline: none;
+}
+
+textarea { min-height: 8rem; resize: vertical; line-height: 1.55; }
+
+.field { margin-bottom: var(--s3); }
+
+.field label {
+  display: block;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: var(--s1);
+}
+
+.toolbar { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
+.toolbar-spacer { flex: 1 1 auto; }
+
+.form-ok { color: var(--ok); font-size: var(--t-sm); margin: var(--s2) 0 0; font-weight: 600; }
+.form-error { color: var(--warn-fg); font-size: var(--t-sm); margin: var(--s2) 0 0; font-weight: 600; }
+
+/* ============================ surfaces ================================== */
+
+.card, .panel {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s4);
+  box-shadow: var(--shadow-1);
+}
+
+.panel { margin-bottom: var(--s5); }
+.panel > h2 { font-size: var(--t-lg); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  border: 2px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 0.1rem 0.65rem;
+  font-size: var(--t-xs);
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.badge.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.badge.lilac { background: var(--highlight-llm); color: var(--lilac); border-color: transparent; }
+
+.empty {
+  text-align: center;
+  padding: var(--s6) var(--s4);
+  color: var(--muted);
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--r-lg);
+}
+
+.empty .mascot { margin: 0 auto var(--s3); }
+.empty h2 { color: var(--fg); }
+.empty p { margin-top: 0; }
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin: var(--s6) 0 var(--s3);
+}
+
+.section-title h2 { margin: 0; }
+
+/* ============================ home ====================================== */
+
+.greeting {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin-bottom: var(--s5);
+}
+
+.greeting .mascot { flex-shrink: 0; }
+
+.greeting-title {
+  margin: 0;
+  font-size: var(--t-2xl);
+  background: linear-gradient(120deg, var(--accent), var(--lilac));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.greeting-sub { margin: var(--s1) 0 0; color: var(--muted); font-size: var(--t-sm); }
+
+.continue-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  background: linear-gradient(135deg, var(--surface), var(--accent-soft));
+  border: 2px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s4) var(--s5);
+  margin-bottom: var(--s5);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-1);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.continue-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.continue-card .continue-body { flex: 1; min-width: 0; }
+.continue-card .mascot { flex-shrink: 0; }
+
+.eyebrow {
+  font-size: var(--t-xs);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 var(--s1);
+}
+
+.continue-title { font-family: var(--font-read); font-size: var(--t-xl); margin: 0; }
+.continue-meta { margin: var(--s2) 0 0; font-size: var(--t-sm); color: var(--muted); }
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  color: var(--muted);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin: var(--s4) 0;
+}
+
+.or-divider::before, .or-divider::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+/* ============================ lists ===================================== */
+
+.list { list-style: none; padding: 0; margin: 0; }
+.list li { border-bottom: 1px solid var(--border); }
+.list li:last-child { border-bottom: none; }
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.list-row:hover { background: var(--surface); transform: translateX(4px); }
+
+.list-main { flex: 1; min-width: 0; }
+.list-title { font-family: var(--font-read); font-size: var(--t-lg); margin: 0; }
+
+.list-meta {
+  display: flex;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--muted);
+}
+
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.break-all { overflow-wrap: anywhere; }
+
+.chapter-row.is-current { background: var(--accent-soft); }
+
+.chapter-num {
+  flex-shrink: 0;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-sm);
+  font-weight: 700;
+}
+
+/* ============================ reader ==================================== */
+
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright), var(--lilac));
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  z-index: 60;
+  transition: width 120ms linear;
+}
+
+.reader-head { margin-bottom: var(--s4); }
+.reader-head h2 { margin-bottom: var(--s1); }
+
+/* Khoảng thở giữa thanh công cụ và thân chương (trước đây do thanh thống kê tạo ra). */
+.reader-root > .toolbar { margin-bottom: var(--s5); }
+
+/* Vùng chữ giữ nền phẳng, không gradient: đây là chỗ mắt ở lại lâu nhất. */
 .reader-text {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.15rem;
-  line-height: 1.8;
+  font-family: var(--font-read);
+  font-size: var(--reader-font-size);
+  line-height: 1.85;
+  color: var(--fg);
 }
 
-.reader-text p {
-  margin: 0 0 1.2em;
-}
+.reader-text p { margin: 0 0 1.15em; }
 
 .reader-text .changed {
-  border-bottom: 2px dotted var(--accent);
+  border-radius: var(--r-sm);
+  padding: 0.05em 0.25em;
   cursor: help;
-}
-
-.reader-text.no-highlight .changed {
-  border-bottom: none;
+  transition: background 140ms ease;
 }
 
 .reader-text .changed[data-source="replace"] {
   background: var(--highlight-replace);
+  box-shadow: inset 0 -2px 0 var(--hl-line-replace);
 }
 
 .reader-text .changed[data-source="llm"] {
   background: var(--highlight-llm);
+  box-shadow: inset 0 -2px 0 var(--hl-line-llm);
 }
 
-.reader-text.no-highlight .changed[data-source] {
+.reader-text .changed:hover { filter: brightness(0.96); }
+
+.reader-text.no-highlight .changed {
   background: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
 .banner {
-  background: var(--banner-bg);
-  color: var(--banner-fg);
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+  padding: var(--s3) var(--s4);
+  margin-bottom: var(--s4);
+  font-size: var(--t-sm);
 }
 
-.stats-bar {
+.position-note {
+  background: var(--mint-soft);
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+  padding: var(--s2) var(--s3);
+  margin-bottom: var(--s4);
+  font-size: var(--t-sm);
+  color: var(--mint);
+  font-weight: 600;
   display: flex;
-  gap: 1rem;
+  gap: var(--s3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Phải đứng SAU quy tắc display, nếu không thuộc tính hidden của HTML bị ghi đè
+   và ô này hiện thành một hộp rỗng trên mọi chương. */
+.position-note[hidden] { display: none; }
+
+.chapter-end {
+  margin-top: var(--s7);
+  padding-top: var(--s5);
+  border-top: 2px dashed var(--border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--s3);
   flex-wrap: wrap;
+}
+
+/* ============================ thêm nhiều chương ========================= */
+
+.batch-run { margin-top: var(--s5); }
+
+.batch-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+}
+
+.batch-num {
+  flex-shrink: 0;
+  min-width: 3.2rem;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  font-weight: 700;
   color: var(--muted);
-  font-size: 0.85rem;
-  margin: 0.5rem 0 1.5rem;
 }
 
-.toolbar {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
+.batch-row.is-error .list-title { color: var(--warn-fg); }
+
+.batch-pending, .batch-done {
+  color: var(--muted);
+  font-size: var(--t-sm);
 }
 
-button, .btn {
-  font: inherit;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--fg);
-  cursor: pointer;
-}
+.batch-done { color: var(--fg); }
 
-button.primary {
+.spinner-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--r-pill);
   background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  margin-right: var(--s2);
+  animation: pulse-dot 1s ease-in-out infinite;
 }
 
-input[type="text"], input[type="url"], textarea, select {
-  font: inherit;
-  width: 100%;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--fg);
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
-textarea {
-  min-height: 10rem;
-  resize: vertical;
+.nav-edit {
+  margin-top: var(--s5);
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s3) var(--s4);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
+.nav-edit summary {
+  cursor: pointer;
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--accent);
 }
 
-th, td {
-  text-align: left;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border);
+.nav-edit[open] summary { margin-bottom: var(--s3); }
+.nav-edit-hint { font-size: var(--t-xs); color: var(--muted); margin: 0 0 var(--s3); }
+
+.diff-original {
+  color: var(--muted);
+  white-space: pre-wrap;
+  background: var(--surface);
+  border-radius: var(--r-md);
+  margin-top: var(--s6);
+  padding: var(--s4);
+  font-family: var(--font-read);
 }
+
+/* ============================ tables ==================================== */
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+th, td { text-align: left; padding: var(--s2) var(--s3); border-bottom: 1px solid var(--border); }
+
+th {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+tbody tr { transition: background 140ms ease; }
+tbody tr:hover { background: var(--surface); }
+
+/* ============================ popovers ================================== */
 
 .quick-add-popup {
   position: absolute;
   z-index: 50;
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid var(--accent-bright);
+  border-radius: var(--r-md);
+  padding: var(--s3);
+  box-shadow: var(--shadow-2);
   display: flex;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 18rem;
+  max-width: 24rem;
+  animation: pop-in 180ms ease;
 }
 
-.diff-original {
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.quick-add-term { font-size: var(--t-sm); color: var(--muted); overflow-wrap: anywhere; }
+.quick-add-actions { display: flex; gap: var(--s1); }
+.quick-add-actions button { flex: 1; padding: 0.35rem 0.4rem; font-size: var(--t-xs); }
+.quick-add-form { display: flex; flex-direction: column; gap: var(--s2); }
+.quick-add-hint { font-size: var(--t-xs); color: var(--muted); }
+.quick-add-status { font-size: var(--t-xs); color: var(--muted); }
+.quick-add-status.error { color: var(--warn-fg); }
+
+/* ============================ feedback widget =========================== */
+
+.fab {
+  position: fixed;
+  right: var(--s5);
+  bottom: var(--s5);
+  z-index: 45;
+  width: 3.6rem;
+  height: 3.6rem;
+  padding: 0;
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--btn-a), var(--btn-b));
+  border: none;
+  box-shadow: var(--shadow-2);
+  display: grid;
+  place-items: center;
+}
+
+.fab .mascot { width: 2.4rem; }
+.fab:hover { transform: translateY(-4px) scale(1.06); box-shadow: var(--shadow-2); }
+.fab::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--accent-bright);
+  opacity: 0;
+  animation: halo 3s ease-out infinite;
+}
+
+@keyframes halo {
+  0% { opacity: 0.6; transform: scale(0.9); }
+  70%, 100% { opacity: 0; transform: scale(1.15); }
+}
+
+.feedback-panel {
+  position: fixed;
+  right: var(--s5);
+  bottom: calc(var(--s5) + 4.4rem);
+  z-index: 46;
+  width: min(24rem, calc(100vw - 2 * var(--s4)));
+  background: var(--bg);
+  border: 2px solid var(--accent-bright);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  padding: var(--s4);
+  animation: pop-in 200ms ease;
+}
+
+.feedback-panel[hidden] { display: none; }
+.feedback-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s1); }
+.feedback-head h3 { font-size: var(--t-md); margin: 0; }
+.feedback-context { font-size: var(--t-xs); color: var(--muted); margin: 0 0 var(--s3); overflow-wrap: anywhere; }
+
+.feedback-quote {
+  border-left: 3px solid var(--accent-bright);
+  padding-left: var(--s2);
+  margin: 0 0 var(--s3);
+  font-family: var(--font-read);
+  font-size: var(--t-sm);
   color: var(--muted);
-  white-space: pre-wrap;
 }
 
-.field-row {
-  margin-bottom: 0.75rem;
-}
+.note { padding: var(--s4) var(--s3); }
+.note-message { margin: 0 0 var(--s2); white-space: pre-wrap; }
 
-.field-row label {
-  display: block;
-  font-size: 0.85rem;
+.note-quote {
+  border-left: 3px solid var(--border);
+  padding-left: var(--s3);
+  margin: 0 0 var(--s2);
+  font-family: var(--font-read);
   color: var(--muted);
-  margin-bottom: 0.25rem;
+}
+
+.note.is-resolved .note-message { color: var(--muted); text-decoration: line-through; }
+
+/* ============================ dialog ==================================== */
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(64, 32, 47, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s4);
+}
+
+.dialog[hidden] { display: none; }
+
+.dialog-panel {
+  background: var(--bg);
+  border: 2px solid var(--accent-bright);
+  border-radius: var(--r-lg);
+  padding: var(--s5);
+  max-width: 26rem;
+  width: 100%;
+  box-shadow: var(--shadow-2);
+  animation: pop-in 200ms ease;
+}
+
+.dialog-panel h3 { margin-top: 0; }
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s2) var(--s4);
+  margin: 0 0 var(--s4);
+  font-size: var(--t-sm);
+}
+
+.shortcut-grid dt {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--surface-2);
+  color: var(--accent);
+  border-radius: var(--r-sm);
+  padding: 0.05rem 0.5rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.shortcut-grid dd { margin: 0; }
+
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 150ms ease;
+  font-size: var(--t-sm);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+
+/* ============================ responsive ================================ */
+
+@media (max-width: 640px) {
+  /* Trên điện thoại: tên app và hai nút ở hàng trên, menu xuống hàng riêng chiếm hết bề ngang.
+     Nếu để chung một hàng, thanh menu 5 mục không co lại được (flex item mặc định
+     min-width:auto) nên nó đẩy CẢ TRANG rộng hơn màn hình và mọi thứ bị cắt cụt mép phải. */
+  .site-header { padding: var(--s2) var(--s3); flex-wrap: wrap; }
+  .brand { font-size: var(--t-md); }
+  .site-nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: var(--s1);
+  }
+  .site-nav a { padding: var(--s1) var(--s2); }
+  main { padding: var(--s4) var(--s3) var(--s7); }
+  h1 { font-size: var(--t-xl); }
+
+  .continue-card { flex-direction: column; align-items: flex-start; }
+  .fab { right: var(--s4); bottom: var(--s4); }
+
+  /* Trên điện thoại, tấm ghi chú kéo lên từ đáy dễ với tay hơn. */
+  .feedback-panel {
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    border-bottom: none;
+  }
+
+  .chapter-num { width: 1.9rem; height: 1.9rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  button:hover, .btn:hover, .continue-card:hover, .list-row:hover, .fab:hover {
+    transform: none;
+  }
 }

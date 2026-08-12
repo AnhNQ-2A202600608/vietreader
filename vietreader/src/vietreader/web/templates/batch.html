@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Thêm nhiều chương — VietReader{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+<h1>Thêm nhiều chương</h1>
+<p class="muted text-sm">
+  Dán mỗi dòng một địa chỉ chương (tối đa {{ max_urls }}). Mây tự nhận ra chúng thuộc bộ truyện
+  nào — bộ đã có sẵn thì gộp vào, chưa có thì tạo mới — rồi xếp lại theo đúng số chương.
+</p>
+
+<form class="panel" hx-post="/batch" hx-target="#batch-area" hx-swap="innerHTML">
+  <div class="field">
+    <label for="urls">Danh sách địa chỉ chương</label>
+    <textarea id="urls" name="urls" rows="10" required
+      placeholder="https://truyen.vn/ten-truyen/chuong-1&#10;https://truyen.vn/ten-truyen/chuong-2&#10;https://truyen.vn/ten-truyen/chuong-3"></textarea>
+  </div>
+  <button type="submit" class="primary">Bắt đầu</button>
+</form>
+
+<div id="batch-area"></div>
+{% endblock %}

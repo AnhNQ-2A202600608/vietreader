@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Thư viện — VietReader{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+<h1>Thư viện</h1>
+
+{% if not series and not standalone %}
+<div class="empty">
+  {% with size = "lg", mood = "sleepy" %}{% include "_mascot.html" %}{% endwith %}
+  <h2>Chưa có gì ở đây</h2>
+  <p>Mây đang ngủ gật. {{ reader_name }} đọc chương đầu tiên đi, nó sẽ tự hiện ra ở đây.</p>
+  <a class="btn primary" href="/">Đọc chương đầu tiên</a>
+</div>
+{% endif %}
+
+{% if series %}
+<div class="section-title">
+  <h2>Bộ truyện</h2>
+  <span class="text-sm muted">{{ series | length }} bộ</span>
+</div>
+<ul class="list">
+  {% for s in series %}
+  <li>
+    <a class="list-row" href="/series/{{ s.id }}">
+      <span class="list-main">
+        <span class="list-title truncate">{{ s.title }}</span>
+        <span class="list-meta">
+          <span>{{ s.chapter_count }} chương</span>
+          <span class="truncate break-all">{{ s.series_key }}</span>
+        </span>
+      </span>
+      {% if s.followed %}<span class="badge accent">Đang theo dõi</span>{% endif %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if standalone %}
+<div class="section-title">
+  <h2>Chương lẻ</h2>
+  <span class="text-sm muted">Dán trực tiếp, không thuộc bộ nào</span>
+</div>
+<ul class="list">
+  {% for c in standalone %}
+  <li>
+    <a class="list-row" href="/reader/{{ c.id }}">
+      <span class="list-main">
+        <span class="list-title truncate">{{ c.title or "(không có tiêu đề)" }}</span>
+        {% if c.url %}<span class="list-meta"><span class="truncate break-all">{{ c.url }}</span></span>{% endif %}
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
