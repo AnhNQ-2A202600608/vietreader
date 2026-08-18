@@ -1,4 +1,4 @@
-"""GET /api/health"""
+"""GET & HEAD /api/health"""
 
 from __future__ import annotations
 
@@ -15,3 +15,8 @@ class HealthResponse(BaseModel):
 @router.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(status="ok")
+
+
+@router.head("/health", include_in_schema=False)
+async def health_head() -> None:
+    return None

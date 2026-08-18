@@ -37,6 +37,9 @@ async def test_health(client: AsyncClient) -> None:
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
 
+    resp_head = await client.head("/api/health")
+    assert resp_head.status_code == 200
+
 
 async def test_openapi_and_docs_load(client: AsyncClient) -> None:
     openapi = await client.get("/openapi.json")
