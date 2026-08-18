@@ -7,6 +7,23 @@ import time
 
 import httpx
 
+DEFAULT_BROWSER_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+DEFAULT_HEADERS = {
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+    ),
+    "Accept-Language": "vi,en-US;q=0.9,en;q=0.8",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
+
 
 class FetchError(RuntimeError):
     """Raised when a chapter page cannot be fetched. Callers should offer the paste fallback."""
@@ -16,13 +33,17 @@ class Fetcher:
     def __init__(
         self,
         *,
-        user_agent: str,
-        timeout: float = 15.0,
+        user_agent: str = DEFAULT_BROWSER_UA,
+        timeout: float = 20.0,
         max_retries: int = 2,
-        delay_seconds: float = 1.0,
+        delay_seconds: float = 0.5,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
-        self._user_agent = user_agent
+        self._user_agent = (
+            user_agent
+            if ("Mozilla" in user_agent or "Chrome" in user_agent)
+            else DEFAULT_BROWSER_UA
+        )
         self._timeout = timeout
         self._max_retries = max_retries
         self._delay_seconds = delay_seconds
@@ -31,11 +52,16 @@ class Fetcher:
 
     async def fetch(self, url: str, *, transport: httpx.AsyncBaseTransport | None = None) -> str:
         await self._respect_delay()
-        headers = {"User-Agent": self._user_agent}
+        headers = {**DEFAULT_HEADERS, "User-Agent": self._user_agent}
         last_error: Exception | None = None
         transport = transport or self._default_transport
 
-        async with httpx.AsyncClient(timeout=self._timeout, transport=transport) as client:
+        async with httpx.AsyncClient(
+            timeout=self._timeout,
+            transport=transport,
+            follow_redirects=True,
+            verify=False,
+        ) as client:
             for _attempt in range(self._max_retries + 1):
                 try:
                     response = await client.get(url, headers=headers)
@@ -46,8 +72,8 @@ class Fetcher:
                     continue
 
         raise FetchError(
-            f"failed to fetch {url!r} after {self._max_retries + 1} attempt(s): {last_error}. "
-            "Thử dán trực tiếp nội dung chương (paste fallback)."
+            f"Không thể tải trang {url!r}: {last_error}. "
+            "Bạn có thể sao chép và dán trực tiếp nội dung chương vào ô bên dưới."
         ) from last_error
 
     async def _respect_delay(self) -> None:

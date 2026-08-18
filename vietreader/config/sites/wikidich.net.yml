@@ -1,0 +1,9 @@
+domain: wikidich.net
+title: "h2.chapter-title"
+content: "div#bookContentBody"
+paragraph_split: "newline"
+next_link: "a.btn-next-chapter@href"
+prev_link: "a.btn-prev-chapter@href"
+strip_selectors:
+  - "script"
+  - "style"

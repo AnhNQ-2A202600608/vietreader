@@ -1,0 +1,11 @@
+domain: truyenfull.vn
+title: "a.chapter-title"
+content: "div#chapter-c"
+paragraph_split: "newline"
+next_link: "a#next_chap@href"
+prev_link: "a#prev_chap@href"
+strip_selectors:
+  - "script"
+  - "style"
+  - "div.ads-holder"
+  - "div.ads-responsive"

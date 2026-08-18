@@ -1,0 +1,18 @@
+<div class="reader-root" style="margin-top: var(--s4);">
+  <div class="banner" style="border-left: 4px solid var(--warn-fg); background: var(--warn-bg); color: var(--fg); padding: var(--s4); border-radius: var(--r-md);">
+    <div style="display: flex; align-items: flex-start; gap: var(--s3);">
+      {% with size = "sm", mood = "sleepy" %}{% include "_mascot.html" %}{% endwith %}
+      <div>
+        <strong style="color: var(--warn-fg); font-size: var(--t-md); display: block; margin-bottom: var(--s1);">
+          Chưa tải được nội dung từ liên kết này
+        </strong>
+        <p style="margin: 0 0 var(--s2); font-size: var(--t-sm);">
+          {{ error }}
+        </p>
+        <p class="muted text-sm" style="margin: 0;">
+          💡 <em>Mẹo: Một số trang web chặn bot/máy chủ tự động lấy dữ liệu. Bạn có thể mở trang truyện, sao chép (Ctrl+C / Cmd+C) toàn bộ chữ của chương rồi dán vào ô <strong>"Dán nội dung chương"</strong> ở trên để đọc ngay nhé!</em>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -582,8 +582,12 @@
 
   document.addEventListener("htmx:afterSwap", function () {
     closeQuickAdd();
-    // Land at the top of the new chapter first; initReader may then restore a saved position.
-    window.scrollTo({ top: 0 });
+    var container = document.getElementById("reader-container");
+    if (container && container.firstElementChild) {
+      container.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 0 });
+    }
     initReader();
   });
 })();

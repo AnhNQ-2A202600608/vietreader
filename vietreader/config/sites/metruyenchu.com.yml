@@ -1,0 +1,9 @@
+domain: metruyenchu.com
+title: "h1"
+content: "div#js-read-content"
+paragraph_split: "newline"
+next_link: "a#js-btn-next@href"
+prev_link: "a#js-btn-prev@href"
+strip_selectors:
+  - "script"
+  - "style"

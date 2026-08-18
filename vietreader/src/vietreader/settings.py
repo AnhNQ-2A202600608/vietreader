@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     llm_batch_size: int = 40
     llm_max_retries: int = 2
 
-    fetch_user_agent: str = "VietReaderBot/0.1 (personal reading assistant)"
+    fetch_user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
     fetch_timeout_seconds: float = 15.0
     fetch_delay_seconds: float = 1.0
     fetch_max_retries: int = 2

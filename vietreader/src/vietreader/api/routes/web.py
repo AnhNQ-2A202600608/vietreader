@@ -333,24 +333,32 @@ async def read(
     session=Depends(get_session),  # type: ignore[no-untyped-def]
     state: AppState = Depends(get_app_state),
 ) -> HTMLResponse:
-    result = await _run_process(
-        session, state, url=url or None, raw_text=raw_text or None, title=title or None
-    )
-    series = link_chapter_to_series(
-        session,
-        chapter_cache_id=result.chapter_cache_id,
-        url=url or None,
-        title=result.chapter.title,
-    )
-    session.commit()
+    try:
+        result = await _run_process(
+            session, state, url=url or None, raw_text=raw_text or None, title=title or None
+        )
+        series = link_chapter_to_series(
+            session,
+            chapter_cache_id=result.chapter_cache_id,
+            url=url or None,
+            title=result.chapter.title,
+        )
+        session.commit()
 
-    context = _reader_context(request, result, url or None, series)
-    response = templates.TemplateResponse(request, "_reader.html", context)
-    # Give the chapter a real address: refresh, back button and bookmarking all work, and the
-    # chapter survives closing the tab. Only possible when it was cached (validation passed).
-    if result.chapter_cache_id is not None:
-        response.headers["HX-Push-Url"] = f"/reader/{result.chapter_cache_id}"
-    return response
+        context = _reader_context(request, result, url or None, series)
+        response = templates.TemplateResponse(request, "_reader.html", context)
+        # Give the chapter a real address: refresh, back button and bookmarking all work, and the
+        # chapter survives closing the tab. Only possible when it was cached (validation passed).
+        if result.chapter_cache_id is not None:
+            response.headers["HX-Push-Url"] = f"/reader/{result.chapter_cache_id}"
+        return response
+    except Exception as exc:
+        session.rollback()
+        return templates.TemplateResponse(
+            request,
+            "_reader_error.html",
+            {"request": request, "url": url, "error": str(exc)},
+        )
 
 
 @router.get("/reader/{chapter_id}", response_class=HTMLResponse)
