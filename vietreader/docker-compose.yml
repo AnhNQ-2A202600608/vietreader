@@ -1,13 +1,17 @@
 # Bản chạy thật. Bản dev nằm ở docker-compose.dev.yml.
 #
-#   cp config/settings.example.env .env   rồi sửa .env (BẮT BUỘC đặt VIETREADER_ACCESS_PASSWORD)
+#   cp config/settings.example.env .env   rồi sửa .env (xem DEPLOY.md)
 #   docker compose up -d --build
+#
 services:
   app:
     build: .
     restart: unless-stopped
+    # Chỉ mở ra localhost, KHÔNG ra Internet: app không có lớp đăng nhập, nên thứ duy nhất
+    # được phép nhận request từ ngoài là Caddy (DEPLOY.md §8-9), và Caddy chạy cùng máy.
+    # Ở laptop thì vẫn vào http://localhost:8000 bình thường.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
       - .env
     environment:

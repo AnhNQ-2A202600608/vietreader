@@ -210,6 +210,23 @@ L4 Applier → L5 Validator → Reader UI
 (`tests/unit/test_core_purity.py`) đảm bảo không bao giờ import `db/api/llm/extraction/httpx/
 sqlalchemy/fastapi`.
 
+## Đưa lên máy chủ
+
+Cùng một mã nguồn, ba cách. Đổi qua lại được bằng cách đổi `VIETREADER_DATABASE_URL`:
+
+- **[DEPLOY_RENDER.md](DEPLOY_RENDER.md) — đường chính.** Render + Neon Postgres, **$0/tháng,
+  không cần thẻ tín dụng**. Push `main` → CI xanh → Render tự deploy. Đánh đổi: app ngủ sau 15
+  phút, mở lại chờ ~1 phút.
+- [DEPLOY.md](DEPLOY.md) — tự host trên máy ảo hoặc máy ở nhà, giữ SQLite, không ngủ. Miễn phí
+  nếu bạn có sẵn máy; viết cho Oracle Cloud Always Free (gói này **cần thẻ để đăng ký**).
+- [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md) — Railway, ~$5/tháng, cần thẻ.
+
+Cả ba đều lưu ý: app **không có lớp đăng nhập**, nên đọc mục chắn truy cập trước khi đặt
+`VIETREADER_LLM_API_KEY` trên máy chủ công khai.
+
+Cả hai đều lưu ý: app **không có lớp đăng nhập**, nên đọc mục về chắn truy cập trước khi đặt
+`VIETREADER_LLM_API_KEY` trên máy chủ công khai.
+
 ## Giới hạn đã biết
 
 Xem `KNOWN_LIMITATIONS.md`.

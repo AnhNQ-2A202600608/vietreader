@@ -1,0 +1,41 @@
+# Blueprint cho Render. Xem DEPLOY_RENDER.md.
+#
+# Render đọc file này ở GỐC repo, nhưng app nằm trong thư mục con nên có rootDir.
+# Sau khi sửa file này, vào Render bấm "Sync" để áp dụng.
+services:
+  - name: vietreader
+    type: web
+    runtime: docker
+    plan: free
+    region: singapore
+
+    # App nằm ở thư mục con vietreader/ của repo, không phải ở gốc.
+    rootDir: vietreader
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+
+    healthCheckPath: /api/health
+
+    # Chỉ deploy khi CI trên GitHub đã xanh — code hỏng test không lên được máy chủ.
+    # Đổi thành `commit` nếu muốn deploy ngay khi push, không chờ test.
+    autoDeployTrigger: checksPass
+
+    envVars:
+      # sync: false = Render KHÔNG lấy giá trị từ file này mà bắt bạn nhập trên dashboard.
+      # Với DATABASE_URL đó là chủ ý: nó là bí mật, và quan trọng hơn — nếu để trống thì app
+      # sẽ âm thầm quay về SQLite trên đĩa tạm của Render và mất sạch dữ liệu sau mỗi lần
+      # khởi động lại. Bắt buộc phải điền chuỗi Postgres của Neon vào đây.
+      - key: VIETREADER_DATABASE_URL
+        sync: false
+
+      # Để trống nếu không muốn mở tính năng ASK ra Internet — xem DEPLOY_RENDER.md §6.
+      - key: VIETREADER_LLM_API_KEY
+        sync: false
+
+      - key: VIETREADER_READER_NAME
+        value: Ngân Giang
+
+      # Render free không cho chạy lệnh một lần và không có SSH, nên nạp từ điển mẫu lúc
+      # khởi động là cách duy nhất. seed_dictionary.py bỏ qua entry đã có nên chạy lại vô hại.
+      - key: VIETREADER_SEED_ON_START
+        value: "1"

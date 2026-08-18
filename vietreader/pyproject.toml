@@ -19,6 +19,9 @@ dependencies = [
     "python-multipart>=0.0.12,<0.1",
     "pyyaml>=6.0,<6.1",
     "orjson>=3.10,<3.11",
+    # Chỉ dùng khi VIETREADER_DATABASE_URL trỏ vào Postgres (deploy lên Render + Neon, xem
+    # DEPLOY_RENDER.md). Chạy local với SQLite thì gói này nằm im, không được import.
+    "psycopg[binary]>=3.2,<3.3",
 ]
 
 [project.optional-dependencies]

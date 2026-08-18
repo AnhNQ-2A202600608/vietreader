@@ -1,0 +1,36 @@
+name: Keepalive
+
+# Render free cho app ngủ sau 15 phút không có lưu lượng ĐI VÀO. Không dòng code nào bên trong
+# app ngăn được chuyện đó — tín hiệu phải đến từ ngoài. Workflow này gửi tín hiệu đó.
+#
+# CHỈ chạy giờ đọc buổi tối, không chạy 24/7. Lý do là hạn mức: Render cho 750 giờ/tháng cho
+# CẢ workspace, mà đánh thức 24/7 trong tháng 31 ngày đã ngốn 744 giờ — chỉ dư 6 giờ, một lần
+# restart là service bị treo tới hết tháng. Đánh thức 17-24h chỉ tốn ~217 giờ, dư thoải mái.
+#
+# Đổi khung giờ thì sửa dòng cron bên dưới. Nhớ nó tính theo UTC, còn Việt Nam là UTC+7.
+on:
+  schedule:
+    # 10-16 UTC = 17-23h giờ Việt Nam. Mỗi 10 phút.
+    - cron: "*/10 10-16 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Đánh thức app
+        run: |
+          URL="${{ secrets.KEEPALIVE_URL }}"
+          if [ -z "$URL" ]; then
+            echo "Chưa khai secret KEEPALIVE_URL — bỏ qua."
+            echo "Khai nó bằng địa chỉ Render của bạn, ví dụ https://vietreader-xxxx.onrender.com"
+            exit 0
+          fi
+          # App đang ngủ thì request đầu tiên phải chờ nó dậy, nên cho hẳn 120 giây.
+          # `|| true`: một lần ping trượt không phải lý do để job đỏ và làm phiền bạn.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 120 "$URL/api/health" || true)
+          echo "GET $URL/api/health -> ${code:-khong phan hoi}"

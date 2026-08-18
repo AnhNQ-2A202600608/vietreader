@@ -5,6 +5,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from vietreader.db.base import normalize_database_url
 from vietreader.db.models import Base
 from vietreader.settings import get_settings
 
@@ -18,9 +19,11 @@ if config.config_file_name is not None:
 # Trước đây env.py chỉ đọc alembic.ini, nên trên máy chủ (nơi đường dẫn DB đến từ biến môi
 # trường) `alembic upgrade head` tạo bảng ở MỘT file, còn app lại đọc file khác: app khởi động
 # thấy DB trống, hoặc thiếu bảng. Lỗi này im lặng và rất khó đoán, nên phải sửa trước khi deploy.
+# normalize_database_url: alembic phải dùng ĐÚNG driver mà app dùng, nếu không thì trên
+# Postgres nó đi tìm psycopg2 và chết trước cả khi migrate được dòng nào.
 _env_url = get_settings().database_url
 if _env_url:
-    config.set_main_option("sqlalchemy.url", _env_url)
+    config.set_main_option("sqlalchemy.url", normalize_database_url(_env_url))
 
 target_metadata = Base.metadata
 

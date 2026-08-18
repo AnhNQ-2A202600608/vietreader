@@ -11,6 +11,8 @@ htmlcov/
 *.db-wal
 *.db-shm
 .env
+# Tuỳ chỉnh riêng của từng máy. Không track để `git reset --hard` lúc deploy không xoá mất.
+docker-compose.override.yml
 build/
 dist/
 *.egg-info/

@@ -1,0 +1,61 @@
+name: Deploy
+
+# Chỉ deploy sau khi workflow "CI" chạy xong VÀ xanh, VÀ trên nhánh main.
+# Không dùng `on: push` trực tiếp — như thế code hỏng test vẫn lên máy chủ.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  # Cho phép bấm deploy tay ở tab Actions, dùng khi cần deploy lại mà không sửa code.
+  workflow_dispatch:
+
+# Hai lần deploy chồng nhau sẽ tranh cùng một thư mục git trên máy chủ. Xếp hàng, đừng huỷ:
+# huỷ giữa chừng có thể bỏ máy chủ lại ở trạng thái nửa vời.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # workflow_dispatch không có `workflow_run` nên không có conclusion — phải cho qua riêng.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # Workflow này chỉ dành cho đường TỰ HOST (DEPLOY.md). Nếu bạn deploy bằng Render
+      # (DEPLOY_RENDER.md) thì Render tự kéo code, không cần SSH — khi đó secret DEPLOY_HOST
+      # không tồn tại và job dừng ở đây, xanh và im lặng, thay vì đỏ mỗi lần push.
+      - name: Có cấu hình máy chủ tự host không?
+        id: check
+        run: |
+          if [ -z "${{ secrets.DEPLOY_HOST }}" ]; then
+            echo "Không có secret DEPLOY_HOST — bỏ qua. (Dùng Render thì đây là điều bình thường.)"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Chuẩn bị khoá SSH
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # known_hosts thay cho StrictHostKeyChecking=no: nếu không ghim khoá máy chủ thì
+          # bất cứ ai chiếm được DNS/IP đều nhận được khoá deploy của bạn.
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Deploy lên máy chủ
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          # DEPLOY_DIR là tuỳ chọn: bỏ trống thì script tự dùng ~/vietreader/vietreader.
+          # Phải truyền qua đây chứ không khai trong ~/.bashrc trên máy chủ — SSH không tương
+          # tác thoát khỏi ~/.bashrc ngay từ đầu file nên khai ở đó vô tác dụng.
+          ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "VIETREADER_DIR='${{ secrets.DEPLOY_DIR }}' bash -s" \
+            < vietreader/scripts/deploy_remote.sh
