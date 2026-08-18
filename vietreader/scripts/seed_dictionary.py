@@ -3,10 +3,8 @@ surface already exists (does not overwrite/duplicate on repeated runs).
 
 Usage: python scripts/seed_dictionary.py
 
-Thoát sớm khi từ điển đã có dữ liệu. Chuyện này quan trọng vì script được chạy ở MỖI lần
-container khởi động khi VIETREADER_SEED_ON_START=1 (Render free không cho chạy lệnh một lần).
-Không có lối thoát sớm thì mỗi lần app ngủ dậy nó lại thử insert 65 entry — 65 lượt đi về tới
-Postgres qua mạng, cộng thẳng vào thời gian người đọc phải ngồi chờ.
+Chỉ insert những entry mới chưa có trong database, không chèn trùng lặp.
+Đọc danh sách surface đã có trong 1 query duy nhất để tối ưu tốc độ kết nối qua mạng khi deploy.
 """
 
 from __future__ import annotations
@@ -15,7 +13,7 @@ import sys
 from pathlib import Path
 
 import yaml
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -35,33 +33,35 @@ def main() -> None:
     Base.metadata.create_all(engine)
     session_factory = create_session_factory(engine)
 
-    with session_factory() as session:
-        existing = session.scalar(select(func.count()).select_from(DictionaryEntryRow))
-        if existing:
-            print(f"Từ điển đã có {existing} entry — bỏ qua seed.")
-            return
-
     data = yaml.safe_load(SEED_PATH.read_text(encoding="utf-8"))
     created, skipped = 0, 0
 
     with session_factory() as session:
+        existing_surfaces = set(
+            session.scalars(select(DictionaryEntryRow.surface)).all()
+        )
         repo = DictionaryRepo(session)
         for entry in data["entries"]:
+            surface = entry["surface"].strip().lower()
+            if surface in existing_surfaces:
+                skipped += 1
+                continue
             try:
                 repo.create(
-                    surface=entry["surface"],
-                    display=entry["display"],
+                    surface=surface,
+                    display=entry.get("display") or surface,
                     policy=Policy(entry["policy"]),
                     replacement=entry.get("replacement"),
                     candidates=entry.get("candidates") or [],
                 )
                 session.commit()
+                existing_surfaces.add(surface)
                 created += 1
             except DictionaryEntryError:
                 session.rollback()
                 skipped += 1
 
-    print(f"Seeded {created} entries into {settings.database_url} ({skipped} already existed).")
+    print(f"Seeded {created} new entries into {settings.database_url} ({skipped} already existed).")
 
 
 if __name__ == "__main__":

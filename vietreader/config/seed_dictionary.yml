@@ -1,9 +1,11 @@
-# Seed dictionary for a fresh install: 65 entries across all 3 policies (REPLACE/KEEP/ASK),
-# wuxia/xianxia-flavored vocabulary consistent with the terms used as examples throughout
-# AGENT_WORK_ORDER_VietReader.md ("lão giả", "thiếu niên", "linh lực", "đạo hữu", ...).
+# Seed dictionary: expanded comprehensive vocabulary across all 3 policies (REPLACE / KEEP / ASK),
+# wuxia / xianxia / webnovel-flavored vocabulary for Vietnamese translation.
 # Load with: python scripts/seed_dictionary.py
+
 entries:
-  # --- REPLACE (35) ---
+  # =========================================================================
+  # --- REPLACE: Đại từ nhân xưng & Từ ngữ Hán Việt thay thế cố định ---
+  # =========================================================================
   - surface: "lão giả"
     display: "lão giả"
     policy: replace
@@ -144,7 +146,170 @@ entries:
     display: "lão thân"
     policy: replace
     replacement: "ta"
-  # --- KEEP (15): world-building / cultivation terms, never translated ---
+  - surface: "bản cung"
+    display: "bản cung"
+    policy: replace
+    replacement: "ta"
+  - surface: "bản vương"
+    display: "bản vương"
+    policy: replace
+    replacement: "ta"
+  - surface: "bản tôn"
+    display: "bản tôn"
+    policy: replace
+    replacement: "ta"
+  - surface: "vi phụ"
+    display: "vi phụ"
+    policy: replace
+    replacement: "cha"
+  - surface: "vi mẫu"
+    display: "vi mẫu"
+    policy: replace
+    replacement: "mẹ"
+  - surface: "vi sư"
+    display: "vi sư"
+    policy: replace
+    replacement: "thầy"
+  - surface: "điếm tiểu nhị"
+    display: "điếm tiểu nhị"
+    policy: replace
+    replacement: "tiểu nhị"
+  - surface: "chưởng quầy"
+    display: "chưởng quầy"
+    policy: replace
+    replacement: "chủ quán"
+  - surface: "nha hoàn"
+    display: "nha hoàn"
+    policy: replace
+    replacement: "người hầu gái"
+  - surface: "thị nữ"
+    display: "thị nữ"
+    policy: replace
+    replacement: "hầu gái"
+  - surface: "gia phụ"
+    display: "gia phụ"
+    policy: replace
+    replacement: "cha tôi"
+  - surface: "gia mẫu"
+    display: "gia mẫu"
+    policy: replace
+    replacement: "mẹ tôi"
+  - surface: "gia huynh"
+    display: "gia huynh"
+    policy: replace
+    replacement: "anh trai tôi"
+  - surface: "lệnh huynh"
+    display: "lệnh huynh"
+    policy: replace
+    replacement: "anh của ngài"
+  - surface: "lệnh đệ"
+    display: "lệnh đệ"
+    policy: replace
+    replacement: "em trai của ngài"
+  - surface: "lệnh muội"
+    display: "lệnh muội"
+    policy: replace
+    replacement: "em gái của ngài"
+  - surface: "hắc y nhân"
+    display: "hắc y nhân"
+    policy: replace
+    replacement: "người áo đen"
+  - surface: "bạch y nhân"
+    display: "bạch y nhân"
+    policy: replace
+    replacement: "người áo trắng"
+  - surface: "hồng y nhân"
+    display: "hồng y nhân"
+    policy: replace
+    replacement: "người áo đỏ"
+  - surface: "tựu thị"
+    display: "tựu thị"
+    policy: replace
+    replacement: "chính là"
+  - surface: "chỉ bất quá"
+    display: "chỉ bất quá"
+    policy: replace
+    replacement: "chẳng qua chỉ là"
+  - surface: "không khỏi"
+    display: "không khỏi"
+    policy: replace
+    replacement: "bất giác"
+  - surface: "lập tức"
+    display: "lập tức"
+    policy: replace
+    replacement: "ngay lập tức"
+  - surface: "thì thào"
+    display: "thì thào"
+    policy: replace
+    replacement: "lẩm bẩm"
+  - surface: "khẽ giật mình"
+    display: "khẽ giật mình"
+    policy: replace
+    replacement: "giật mình"
+  - surface: "trong lòng giật mình"
+    display: "trong lòng giật mình"
+    policy: replace
+    replacement: "trong lòng thảng thốt"
+  - surface: "bất đắc dĩ"
+    display: "bất đắc dĩ"
+    policy: replace
+    replacement: "đành chịu"
+  - surface: "sắc mặt đại biến"
+    display: "sắc mặt đại biến"
+    policy: replace
+    replacement: "sắc mặt biến đổi lớn"
+  - surface: "nhịn không được"
+    display: "nhịn không được"
+    policy: replace
+    replacement: "không kìm được"
+  - surface: "dường như"
+    display: "dường như"
+    policy: replace
+    replacement: "hình như"
+  - surface: "ngay tại lúc này"
+    display: "ngay tại lúc này"
+    policy: replace
+    replacement: "ngay lúc này"
+  - surface: "đồng dạng"
+    display: "đồng dạng"
+    policy: replace
+    replacement: "tương tự"
+  - surface: "vô luận"
+    display: "vô luận"
+    policy: replace
+    replacement: "bất kể"
+  - surface: "hơi hơi"
+    display: "hơi hơi"
+    policy: replace
+    replacement: "hơi"
+  - surface: "cười khổ"
+    display: "cười khổ"
+    policy: replace
+    replacement: "cười trừ"
+  - surface: "khẽ cười"
+    display: "khẽ cười"
+    policy: replace
+    replacement: "mỉm cười"
+  - surface: "hít sâu một hơi"
+    display: "hít sâu một hơi"
+    policy: replace
+    replacement: "hít một hơi thật sâu"
+  - surface: "thở dài một hơi"
+    display: "thở dài một hơi"
+    policy: replace
+    replacement: "thở dài"
+  - surface: "khóe miệng co giật"
+    display: "khóe miệng co giật"
+    policy: replace
+    replacement: "khóe môi giật giật"
+  - surface: "trợn mắt há hốc mồm"
+    display: "trợn mắt há hốc mồm"
+    policy: replace
+    replacement: "kinh ngạc sững sờ"
+
+  # =========================================================================
+  # --- KEEP: Thuật ngữ tu tiên, cảnh giới, công pháp (Không dịch bậy) ---
+  # =========================================================================
   - surface: "linh lực"
     display: "linh lực"
     policy: keep
@@ -190,7 +355,154 @@ entries:
   - surface: "huyền giới"
     display: "huyền giới"
     policy: keep
-  # --- ASK (15): ambiguous forms of address, need LLM context ---
+  - surface: "trúc cơ"
+    display: "trúc cơ"
+    policy: keep
+  - surface: "luyện khí"
+    display: "luyện khí"
+    policy: keep
+  - surface: "hóa thần"
+    display: "hóa thần"
+    policy: keep
+  - surface: "luyện hư"
+    display: "luyện hư"
+    policy: keep
+  - surface: "hợp thể"
+    display: "hợp thể"
+    policy: keep
+  - surface: "đại thừa"
+    display: "đại thừa"
+    policy: keep
+  - surface: "chân tiên"
+    display: "chân tiên"
+    policy: keep
+  - surface: "kim tiên"
+    display: "kim tiên"
+    policy: keep
+  - surface: "tiên đế"
+    display: "tiên đế"
+    policy: keep
+  - surface: "tiên vương"
+    display: "tiên vương"
+    policy: keep
+  - surface: "thần thức"
+    display: "thần thức"
+    policy: keep
+  - surface: "thần niệm"
+    display: "thần niệm"
+    policy: keep
+  - surface: "thần thông"
+    display: "thần thông"
+    policy: keep
+  - surface: "pháp quyết"
+    display: "pháp quyết"
+    policy: keep
+  - surface: "công pháp"
+    display: "công pháp"
+    policy: keep
+  - surface: "tâm pháp"
+    display: "tâm pháp"
+    policy: keep
+  - surface: "trận pháp"
+    display: "trận pháp"
+    policy: keep
+  - surface: "trận nhãn"
+    display: "trận nhãn"
+    policy: keep
+  - surface: "linh mạch"
+    display: "linh mạch"
+    policy: keep
+  - surface: "linh căn"
+    display: "linh căn"
+    policy: keep
+  - surface: "khí hải"
+    display: "khí hải"
+    policy: keep
+  - surface: "pháp lực"
+    display: "pháp lực"
+    policy: keep
+  - surface: "ma khí"
+    display: "ma khí"
+    policy: keep
+  - surface: "yêu khí"
+    display: "yêu khí"
+    policy: keep
+  - surface: "nguyên thần"
+    display: "nguyên thần"
+    policy: keep
+  - surface: "phân thân"
+    display: "phân thân"
+    policy: keep
+  - surface: "hóa thân"
+    display: "hóa thân"
+    policy: keep
+  - surface: "tâm ma"
+    display: "tâm ma"
+    policy: keep
+  - surface: "tẩu hỏa nhập ma"
+    display: "tẩu hỏa nhập ma"
+    policy: keep
+  - surface: "bế quan"
+    display: "bế quan"
+    policy: keep
+  - surface: "xuất quan"
+    display: "xuất quan"
+    policy: keep
+  - surface: "tọa hóa"
+    display: "tọa hóa"
+    policy: keep
+  - surface: "đoạt xá"
+    display: "đoạt xá"
+    policy: keep
+  - surface: "phi thăng"
+    display: "phi thăng"
+    policy: keep
+  - surface: "chưởng môn"
+    display: "chưởng môn"
+    policy: keep
+  - surface: "trưởng lão"
+    display: "trưởng lão"
+    policy: keep
+  - surface: "thái thượng trưởng lão"
+    display: "thái thượng trưởng lão"
+    policy: keep
+  - surface: "khách khanh"
+    display: "khách khanh"
+    policy: keep
+  - surface: "chân truyền đệ tử"
+    display: "chân truyền đệ tử"
+    policy: keep
+  - surface: "thánh tử"
+    display: "thánh tử"
+    policy: keep
+  - surface: "thánh nữ"
+    display: "thánh nữ"
+    policy: keep
+  - surface: "túi trữ vật"
+    display: "túi trữ vật"
+    policy: keep
+  - surface: "trữ vật giới"
+    display: "trữ vật giới"
+    policy: keep
+  - surface: "linh bảo"
+    display: "linh bảo"
+    policy: keep
+  - surface: "tiên bảo"
+    display: "tiên bảo"
+    policy: keep
+  - surface: "ngự kiếm"
+    display: "ngự kiếm"
+    policy: keep
+  - surface: "độn thuật"
+    display: "độn thuật"
+    policy: keep
+  - surface: "thuấn di"
+    display: "thuấn di"
+    policy: keep
+
+  # =========================================================================
+  # --- ASK: Đại từ xưng hô phụ thuộc ngữ cảnh / hỏi LLM ---
+  # =========================================================================
   - surface: "đạo hữu"
     display: "đạo hữu"
     policy: ask
@@ -251,3 +563,31 @@ entries:
     display: "quý khách"
     policy: ask
     candidates: ["quý khách", "vị khách", "ngài"]
+  - surface: "trẫm"
+    display: "trẫm"
+    policy: ask
+    candidates: ["trẫm", "ta"]
+  - surface: "ái khanh"
+    display: "ái khanh"
+    policy: ask
+    candidates: ["ái khanh", "khanh"]
+  - surface: "thần"
+    display: "thần"
+    policy: ask
+    candidates: ["thần", "hạ thần", "thần tử"]
+  - surface: "nô tỳ"
+    display: "nô tỳ"
+    policy: ask
+    candidates: ["nô tỳ", "nô tì", "con hầu"]
+  - surface: "tiểu nhân"
+    display: "tiểu nhân"
+    policy: ask
+    candidates: ["tiểu nhân", "kẻ hèn này", "tôi"]
+  - surface: "lão nô"
+    display: "lão nô"
+    policy: ask
+    candidates: ["lão nô", "kẻ già này", "tôi"]
+  - surface: "tiên sinh"
+    display: "tiên sinh"
+    policy: ask
+    candidates: ["tiên sinh", "thầy", "ông"]
