@@ -24,7 +24,12 @@
   }
 
   function toggleTheme() {
-    applyTheme(currentTheme() === "dark" ? "light" : "dark");
+    var cur = currentTheme();
+    var next = "light";
+    if (cur === "light") next = "sepia";
+    else if (cur === "sepia") next = "dark";
+    else next = "light";
+    applyTheme(next);
   }
 
   // ----------------------------------------------------------- typography
@@ -190,8 +195,21 @@
   // only scrolls after the reader has settled count as the reader taking over.
   var SETTLE_MS = 600;
 
+  function updateScrollTopBtn() {
+    var btn = document.getElementById("scroll-top-btn");
+    if (!btn) return;
+    if (window.scrollY > 350) {
+      btn.hidden = false;
+      btn.classList.add("visible");
+    } else {
+      btn.classList.remove("visible");
+      btn.hidden = true;
+    }
+  }
+
   function onScroll() {
     updateProgress();
+    updateScrollTopBtn();
     if (!readerState) return;
     if (Date.now() - readerState.initAt > SETTLE_MS) readerState.userScrolled = true;
 
@@ -543,6 +561,13 @@
       if (!target) return;
       stepFontSize(target.id === "font-bigger" ? 1 : -1);
     });
+
+    var scrollTopBtn = document.getElementById("scroll-top-btn");
+    if (scrollTopBtn) {
+      scrollTopBtn.addEventListener("click", function () {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {

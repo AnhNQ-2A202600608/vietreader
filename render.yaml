@@ -16,9 +16,9 @@ services:
 
     healthCheckPath: /api/health
 
-    # Chỉ deploy khi CI trên GitHub đã xanh — code hỏng test không lên được máy chủ.
-    # Đổi thành `commit` nếu muốn deploy ngay khi push, không chờ test.
-    autoDeployTrigger: checksPass
+    # Tự động deploy ngay khi push vào main
+    autoDeploy: true
+    autoDeployTrigger: commit
 
     envVars:
       # sync: false = Render KHÔNG lấy giá trị từ file này mà bắt bạn nhập trên dashboard.

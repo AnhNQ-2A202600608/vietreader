@@ -11,7 +11,7 @@
     (function () {
       try {
         var saved = localStorage.getItem("vr-theme");
-        if (saved === "dark" || saved === "light") {
+        if (saved === "dark" || saved === "light" || saved === "sepia") {
           document.documentElement.dataset.theme = saved;
         }
         var size = localStorage.getItem("vr-font-size");
@@ -28,6 +28,10 @@
   <meta name="apple-mobile-web-app-title" content="VietReader">
   <meta name="theme-color" content="#fff8fb" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#15111b" media="(prefers-color-scheme: dark)">
+  <!-- Google Fonts: Literata cho đọc truyện & Plus Jakarta Sans cho UI mượt mà -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,300..700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css">
   <script src="/static/js/htmx.min.js" defer></script>
   <script src="/static/js/alpine.min.js" defer></script>
@@ -89,6 +93,10 @@
     </form>
   </div>
 
+  <button type="button" class="scroll-top-btn" id="scroll-top-btn" title="Cuộn lên đầu trang" aria-label="Cuộn lên đầu trang" hidden>
+    ↑
+  </button>
+
   <div class="dialog" id="shortcuts-dialog" hidden>
     <div class="dialog-panel">
       <h3>Phím tắt</h3>
@@ -99,7 +107,7 @@
         <dt>o</dt><dd>Xem / ẩn bản gốc</dd>
         <dt>f</dt><dd>Ghi chú nhanh</dd>
         <dt>+ / −</dt><dd>Cỡ chữ</dd>
-        <dt>d</dt><dd>Giao diện sáng / tối</dd>
+        <dt>d</dt><dd>Đổi giao diện (Sáng / Sepia / Tối)</dd>
         <dt>?</dt><dd>Bảng phím tắt này</dd>
         <dt>Esc</dt><dd>Đóng</dd>
       </dl>

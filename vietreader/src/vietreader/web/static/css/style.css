@@ -63,14 +63,8 @@
   --shadow-lift: 0 8px 20px rgba(194, 24, 91, 0.16);
 
   /* --- type -------------------------------------------------------------- */
-  /* Mọi font trong hai chuỗi này đều có SẴN bộ ký tự tiếng Việt dựng sẵn.
-     Georgia bị loại: nó thiếu khối Latin Extended Additional (ầ ữ ợ ể ộ...), nên trình duyệt
-     phải mượn glyph từ font khác — chữ có dấu lệch nét so với chữ không dấu ngay trong cùng
-     một từ, nhìn như bị vỡ. Palatino/Charter/Iowan còn tệ hơn: dấu tách rời khỏi chữ.
-     Quicksand cũng bị loại vì không được cài kèm và bản thân nó thiếu dấu tiếng Việt. */
-  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-             Arial, sans-serif;
-  --font-read: "Hoefler Text", Baskerville, "Times New Roman", "Noto Serif", serif;
+  --font-ui: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-read: "Literata", "Noto Serif", "Hoefler Text", Baskerville, serif;
   --t-xs: 0.75rem;
   --t-sm: 0.85rem;
   --t-md: 0.95rem;
@@ -82,8 +76,47 @@
   --reader-width: 70ch;
 }
 
+:root[data-theme="sepia"] {
+  --bg: #f8f1e5;
+  --bg-tint-a: #ebdcc6;
+  --bg-tint-b: #e4d7bc;
+  --surface: #ede3d2;
+  --surface-2: #e2d5c0;
+  --fg: #3b3024;
+  --muted: #786754;
+  --border: #dfcfb7;
+
+  --accent: #a04818;
+  --accent-bright: #cc6d36;
+  --accent-soft: #f2e4d0;
+  --btn-a: #a04818;
+  --btn-b: #cc6d36;
+  --accent-fg: #ffffff;
+
+  --lilac: #8b6fd4;
+  --mint: #2e8b74;
+  --mint-soft: #d8f5ec;
+  --gold: #b8860b;
+
+  --ok: #2e8b57;
+  --ok-soft: #d9f5e4;
+  --warn-fg: #a4133c;
+  --warn-bg: #ffe0e8;
+
+  --highlight-replace: #ebd5c5;
+  --highlight-llm: #ded8f2;
+  --hl-line-replace: #cc6d36;
+  --hl-line-llm: #8b6fd4;
+
+  --mascot-fill: #e8dbca;
+
+  --shadow-1: 0 2px 8px rgba(160, 72, 24, 0.08);
+  --shadow-2: 0 12px 32px rgba(160, 72, 24, 0.16);
+  --shadow-lift: 0 8px 20px rgba(160, 72, 24, 0.14);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="sepia"]) {
     --bg: #15111b;
     /* Hai vệt màu nền phải RẤT nhạt ở bản tối: đậm một chút là thành mảng loang bẩn. */
     --bg-tint-a: #241830;
@@ -173,6 +206,12 @@
 /* ============================ base ====================================== */
 
 * { box-sizing: border-box; }
+
+body, .site-header, .site-nav a, .panel, .continue-card, .list-row, button, .btn, .dialog-panel, .feedback-panel {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 body {
   margin: 0;
@@ -811,6 +850,45 @@ tbody tr:hover { background: var(--surface); }
 .quick-add-hint { font-size: var(--t-xs); color: var(--muted); }
 .quick-add-status { font-size: var(--t-xs); color: var(--muted); }
 .quick-add-status.error { color: var(--warn-fg); }
+
+/* ============================ scroll top ================================ */
+
+.scroll-top-btn {
+  position: fixed;
+  right: var(--s5);
+  bottom: calc(var(--s5) + 4.2rem);
+  z-index: 44;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--accent);
+  box-shadow: var(--shadow-lift);
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease, border-color 0.15s ease;
+  pointer-events: none;
+}
+
+.scroll-top-btn.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.scroll-top-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--accent-bright);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-2);
+}
 
 /* ============================ feedback widget =========================== */
 
