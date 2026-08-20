@@ -12,40 +12,55 @@
   </div>
   {% endif %}
 
+  {% if warnings %}
+  <div class="reader-notice">
+    <strong>Một vài chỗ được giữ nguyên để tránh thay sai.</strong>
+    <span>{{ warnings | length }} cảnh báo trong chương này.</span>
+  </div>
+  {% endif %}
+
   <div class="reader-head">
     {% if series %}
     <p class="eyebrow"><a href="/series/{{ series.id }}">{{ series.title }}</a></p>
     {% endif %}
     <h2>{{ title or "(không có tiêu đề)" }}</h2>
+    {% if url %}
+    <a class="source-link" href="{{ url }}" target="_blank" rel="noopener noreferrer"
+       title="Mở trang truyện gốc">Xem trang nguồn ↗</a>
+    {% endif %}
   </div>
 
-  <div class="toolbar">
-    {% if prev_url %}
-    <button type="button" class="nav-prev"
-      hx-post="/read" hx-vals='{"url": "{{ prev_url }}"}'
-      hx-target="#reader-container" hx-swap="innerHTML" hx-indicator="#loading">
-      ← Trước
-    </button>
-    {% endif %}
-    {% if next_url %}
-    <button type="button" class="primary nav-next"
-      hx-post="/read" hx-vals='{"url": "{{ next_url }}"}'
-      hx-target="#reader-container" hx-swap="innerHTML" hx-indicator="#loading">
-      Chương sau →
-    </button>
-    {% endif %}
-    <span id="loading" class="htmx-indicator">Đang xử lý…</span>
+  <div class="reader-toolbar">
+    <div class="chapter-navigation" aria-label="Điều hướng chương">
+      {% if prev_url %}
+      <button type="button" class="nav-prev"
+        hx-post="/read" hx-vals='{"url": "{{ prev_url }}"}'
+        hx-target="#reader-container" hx-swap="innerHTML" hx-indicator="#loading">
+        ← Chương trước
+      </button>
+      {% endif %}
+      {% if next_url %}
+      <button type="button" class="primary nav-next"
+        hx-post="/read" hx-vals='{"url": "{{ next_url }}"}'
+        hx-target="#reader-container" hx-swap="innerHTML" hx-indicator="#loading">
+        Chương sau →
+      </button>
+      {% endif %}
+      <span id="loading" class="htmx-indicator">Đang mở chương…</span>
+    </div>
 
-    <span class="toolbar-spacer"></span>
-
-    <button type="button" class="toggle-highlight" @click="highlight = !highlight"
-      :class="{ primary: highlight }" title="Tô màu từ đã thay (h)">Tô màu</button>
-    <button type="button" class="toggle-original" @click="showOriginal = !showOriginal"
-      title="Xem bản gốc (o)">
-      <span x-text="showOriginal ? 'Ẩn bản gốc' : 'Bản gốc'"></span>
-    </button>
-    <button type="button" class="icon" id="font-smaller" title="Chữ nhỏ hơn (−)" aria-label="Chữ nhỏ hơn">A−</button>
-    <button type="button" class="icon" id="font-bigger" title="Chữ lớn hơn (+)" aria-label="Chữ lớn hơn">A+</button>
+    <div class="reading-controls" aria-label="Tuỳ chỉnh hiển thị">
+      <button type="button" class="toggle-highlight" @click="highlight = !highlight"
+        :class="{ primary: highlight }" title="Tô màu từ đã thay (h)">Tô từ thay</button>
+      <button type="button" class="toggle-original" @click="showOriginal = !showOriginal"
+        title="Xem bản gốc (o)">
+        <span x-text="showOriginal ? 'Ẩn bản gốc' : 'So với bản gốc'"></span>
+      </button>
+      <span class="font-controls" aria-label="Cỡ chữ">
+        <button type="button" class="icon" id="font-smaller" title="Chữ nhỏ hơn (−)" aria-label="Chữ nhỏ hơn">A−</button>
+        <button type="button" class="icon" id="font-bigger" title="Chữ lớn hơn (+)" aria-label="Chữ lớn hơn">A+</button>
+      </span>
+    </div>
   </div>
 
   <div id="position-restored" class="position-note" hidden></div>
@@ -87,17 +102,22 @@
       không đổi địa chỉ). Khi đó bạn mở chương kế tiếp trên trang truyện, copy địa chỉ rồi
       dán vào đây.
     </p>
-    <form hx-post="/reader/{{ id }}/navigation"
+    <form data-normalize-urls hx-post="/reader/{{ id }}/navigation"
           hx-target="#reader-container" hx-swap="innerHTML">
+      {% if navigation_error %}
+      <p class="form-error" role="alert">{{ navigation_error }}</p>
+      {% endif %}
       <div class="field">
         <label for="nav-prev-{{ id }}">Địa chỉ chương trước</label>
-        <input type="url" id="nav-prev-{{ id }}" name="prev_url" value="{{ prev_url or '' }}"
-               placeholder="https://...">
+        <input type="text" inputmode="url" autocapitalize="none" spellcheck="false"
+               id="nav-prev-{{ id }}" name="prev_url"
+               value="{{ nav_prev_value | default(prev_url or '') }}" placeholder="https://...">
       </div>
       <div class="field">
         <label for="nav-next-{{ id }}">Địa chỉ chương sau</label>
-        <input type="url" id="nav-next-{{ id }}" name="next_url" value="{{ next_url or '' }}"
-               placeholder="https://...">
+        <input type="text" inputmode="url" autocapitalize="none" spellcheck="false"
+               id="nav-next-{{ id }}" name="next_url"
+               value="{{ nav_next_value | default(next_url or '') }}" placeholder="https://...">
       </div>
       <button type="submit" class="primary">Lưu liên kết</button>
     </form>

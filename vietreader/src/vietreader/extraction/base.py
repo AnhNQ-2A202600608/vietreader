@@ -11,6 +11,7 @@ from typing import Protocol
 
 from vietreader.core.models import Chapter
 from vietreader.core.normalize import normalize_text, split_paragraphs
+from vietreader.core.series import infer_chapter_title
 
 __all__ = ["Chapter", "Extractor", "ExtractionError", "from_raw_text"]
 
@@ -27,7 +28,22 @@ def from_raw_text(text: str, title: str | None = None) -> Chapter:
     """Escape hatch for pasted text: bypasses fetch/parse entirely (spec Phase 4)."""
     normalized = normalize_text(text)
     paragraphs = split_paragraphs(normalized)
-    normalized_title = normalize_text(title) if title else ""
+    # Copying from many reading sites produces one visual paragraph per line but no blank
+    # lines.  Rendering that as one paragraph collapses every newline into a wall of text.
+    # Only use the adaptive path when there are no explicit blank-line boundaries, and require
+    # at least three substantial lines so ordinary manually wrapped prose remains intact.
+    if len(paragraphs) == 1:
+        lines = [line.strip() for line in normalized.splitlines() if line.strip()]
+        substantial = [line for line in lines if len(line) >= 20]
+        if len(lines) >= 3 and len(substantial) / len(lines) >= 0.6:
+            paragraphs = lines
+    normalized_title = infer_chapter_title(title, None, paragraphs)
+    if not (title or "").strip() and paragraphs:
+        opening = " ".join(paragraphs[0].split()).lstrip("# ").strip()
+        if opening == normalized_title:
+            # The inferred heading is rendered separately as the chapter title; keeping the
+            # same line in the body would show it twice.
+            paragraphs = paragraphs[1:]
     return Chapter(
         title=normalized_title,
         paragraphs=paragraphs,

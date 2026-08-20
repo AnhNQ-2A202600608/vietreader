@@ -13,9 +13,10 @@ from vietreader.api.deps import AppState, get_app_state, get_session
 from vietreader.core.dictionary import CompiledDictionary
 from vietreader.db.repositories.chapter_cache import ChapterCacheRepo
 from vietreader.db.repositories.dictionary import DictionaryRepo
+from vietreader.db.repositories.dictionary_version import DictionaryVersionRepo
 from vietreader.db.repositories.llm_cache import LLMCacheRepo
 from vietreader.db.repositories.run_log import RunLogRepo
-from vietreader.llm.disambiguator import PROMPT_VERSION
+from vietreader.extraction.urls import normalize_source_url
 from vietreader.pipeline.process_chapter import process_chapter
 
 router = APIRouter(prefix="/api/chapters", tags=["chapters"])
@@ -81,17 +82,19 @@ async def process(
     session: Session = Depends(get_session),
     state: AppState = Depends(get_app_state),
 ) -> ProcessChapterResponse:
+    normalized_url = normalize_source_url(body.url) if body.url else None
     dict_repo = DictionaryRepo(session)
     entries = dict_repo.list_enabled()
     dict_version_hash = CompiledDictionary.from_entries(entries).version_hash
+    DictionaryVersionRepo(session).ensure(dict_version_hash, len(entries))
 
     result = await process_chapter(
-        source_url=body.url,
+        source_url=normalized_url,
         raw_text=body.raw_text,
         title=body.title,
         dictionary_entries=entries,
         dict_version_hash=dict_version_hash,
-        prompt_version=PROMPT_VERSION,
+        prompt_version=state.settings.llm_prompt_version,
         model=state.settings.llm_model,
         provider=state.provider,
         chapter_cache_repo=ChapterCacheRepo(session),

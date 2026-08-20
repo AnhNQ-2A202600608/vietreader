@@ -36,6 +36,11 @@ cp config/settings.example.env .env
 Sửa `.env`. Đáng chú ý: `VIETREADER_READER_NAME` là tên hiển thị trong lời chào ở trang chủ và
 các màn hình trống (mặc định `Ngân Giang`).
 
+Khi mở app ra Internet, đặt `VIETREADER_REQUIRE_AUTH=true` và khai cả
+`VIETREADER_AUTH_USERNAME` / `VIETREADER_AUTH_PASSWORD`. Local mặc định không yêu cầu đăng nhập.
+Fetcher mặc định xác minh TLS và từ chối localhost, IP private/link-local để tránh SSRF; chỉ bật
+`VIETREADER_FETCH_ALLOW_PRIVATE_NETWORKS=true` trong mạng tin cậy khi thật sự cần.
+
 Tối thiểu cần set `VIETREADER_LLM_API_KEY` (Anthropic API key) nếu muốn dùng tính
 năng ASK (dịch từ mơ hồ qua LLM) — không có key thì mọi tính năng khác (REPLACE, KEEP, extraction,
 reader UI, dictionary manager) vẫn hoạt động bình thường; span ASK sẽ fallback giữ nguyên và ghi
@@ -56,7 +61,7 @@ chuẩn, có version history, downgrade được.)
 .venv/Scripts/python.exe scripts/seed_dictionary.py
 ```
 
-Nạp 65 entry mẫu (`config/seed_dictionary.yml`) — 35 REPLACE, 15 KEEP, 15 ASK, từ vựng tiên
+Nạp 160 entry mẫu (`config/seed_dictionary.yml`) — 75 REPLACE, 63 KEEP, 22 ASK, từ vựng tiên
 hiệp/kiếm hiệp. An toàn chạy nhiều lần (bỏ qua entry đã tồn tại, không tạo trùng).
 
 ## 5. Chạy server
@@ -78,6 +83,15 @@ Tương đương `make run`. Mở `http://localhost:8000`:
 | `/docs` | OpenAPI/Swagger UI của JSON API |
 
 ## 6. Dùng trình đọc
+
+**Dán link theo cách tự nhiên.** Ô mở chương nhận URL đầy đủ, tên miền chưa có `https://`, URL
+dạng `//domain/path`, link bọc bởi dấu `<...>` hoặc Markdown. Ký tự ẩn do copy/paste được bỏ tự
+động. Nếu trang nguồn chặn bot, trả 404, timeout hay chỉ hiện CAPTCHA, màn hình lỗi giải thích
+đúng nguyên nhân và cho mở trang nguồn, thử lại hoặc chuyển ngay sang **Dán nội dung**.
+
+**Nội dung dán tay được tách đoạn thích ứng.** Nếu website copy ra mỗi đoạn trên một dòng nhưng
+không có dòng trắng, VietReader không ép tất cả thành một bức tường chữ. Các xuống dòng rõ ràng
+được chuyển thành đoạn đọc riêng; văn bản đã có khoảng cách đoạn vẫn được giữ nguyên.
 
 **Mỗi chương có địa chỉ riêng.** Sau khi bấm "Đọc", URL trình duyệt đổi thành `/reader/{id}` —
 refresh, nút Back, hay bookmark đều giữ được chương. Đóng tab không mất gì: chương nằm trong
@@ -214,18 +228,15 @@ sqlalchemy/fastapi`.
 
 Cùng một mã nguồn, ba cách. Đổi qua lại được bằng cách đổi `VIETREADER_DATABASE_URL`:
 
-- **[DEPLOY_RENDER.md](DEPLOY_RENDER.md) — đường chính.** Render + Neon Postgres, **$0/tháng,
-  không cần thẻ tín dụng**. Push `main` → CI xanh → Render tự deploy. Đánh đổi: app ngủ sau 15
-  phút, mở lại chờ ~1 phút.
+- **[DEPLOY_RENDER.md](DEPLOY_RENDER.md) — đường chính.** Render + Neon Postgres. Có thể thử bằng
+  gói Free, nhưng Render không coi Free là production-grade: app ngủ sau 15 phút và filesystem
+  là tạm. Blueprint buộc PostgreSQL, migration và auth để không mất dữ liệu do cấu hình thiếu.
 - [DEPLOY.md](DEPLOY.md) — tự host trên máy ảo hoặc máy ở nhà, giữ SQLite, không ngủ. Miễn phí
   nếu bạn có sẵn máy; viết cho Oracle Cloud Always Free (gói này **cần thẻ để đăng ký**).
 - [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md) — Railway, ~$5/tháng, cần thẻ.
 
-Cả ba đều lưu ý: app **không có lớp đăng nhập**, nên đọc mục chắn truy cập trước khi đặt
-`VIETREADER_LLM_API_KEY` trên máy chủ công khai.
-
-Cả hai đều lưu ý: app **không có lớp đăng nhập**, nên đọc mục về chắn truy cập trước khi đặt
-`VIETREADER_LLM_API_KEY` trên máy chủ công khai.
+Cả ba đều lưu ý: local mặc định không bật đăng nhập. Blueprint Render bắt buộc HTTP Basic Auth;
+self-host phải bật auth trong app hoặc đặt access control ở reverse proxy trước khi mở Internet.
 
 ## Giới hạn đã biết
 

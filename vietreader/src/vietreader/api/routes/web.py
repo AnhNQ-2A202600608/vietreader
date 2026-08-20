@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
@@ -16,16 +17,20 @@ from vietreader.core.dictionary import CompiledDictionary
 from vietreader.core.models import Change, Policy
 from vietreader.db.repositories.chapter_cache import ChapterCacheRepo
 from vietreader.db.repositories.dictionary import DictionaryRepo
+from vietreader.db.repositories.dictionary_version import DictionaryVersionRepo
 from vietreader.db.repositories.feedback import FeedbackError, FeedbackRepo
 from vietreader.db.repositories.llm_cache import LLMCacheRepo
 from vietreader.db.repositories.position import PositionRepo
 from vietreader.db.repositories.run_log import RunLogRepo
 from vietreader.db.repositories.series import SeriesRepo, link_chapter_to_series
-from vietreader.llm.disambiguator import PROMPT_VERSION
+from vietreader.extraction.base import ExtractionError
+from vietreader.extraction.fetcher import FetchError
+from vietreader.extraction.urls import SourceURLError, normalize_source_url
 from vietreader.pipeline.process_chapter import process_chapter
 from vietreader.web.rendering import render_paragraphs_html
 
 router = APIRouter(tags=["web"])
+logger = logging.getLogger(__name__)
 
 _TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "web" / "templates"
 
@@ -93,12 +98,73 @@ def _parse_urls(raw: str) -> list[str]:
     seen: set[str] = set()
     urls: list[str] = []
     for line in raw.splitlines():
-        url = line.strip()
-        if not url or not url.startswith(("http://", "https://")) or url in seen:
+        try:
+            url = normalize_source_url(line)
+        except SourceURLError:
+            continue
+        if url in seen:
             continue
         seen.add(url)
         urls.append(url)
     return urls[:BATCH_MAX]
+
+
+def _read_error_context(exc: Exception, url: str) -> dict[str, object]:
+    """Turn low-level fetch/parser failures into useful next steps for a reader."""
+    title = "Chưa mở được chương này"
+    message = "VietReader chưa thể lấy nội dung từ liên kết vừa nhập."
+    hint = "Bạn có thể thử lại, hoặc dán nội dung chương để đọc ngay."
+    can_retry = bool(url)
+
+    if isinstance(exc, SourceURLError):
+        title = "Liên kết chưa đúng"
+        message = str(exc)
+        hint = "Ví dụ: truyen.example/chuong-12 — VietReader sẽ tự thêm https://."
+        can_retry = False
+    elif isinstance(exc, FetchError):
+        if exc.code == "blocked_by_site":
+            title = "Trang nguồn đang chặn đọc tự động"
+            message = (
+                "Liên kết vẫn có thể mở trong trình duyệt, "
+                "nhưng trang không cho máy chủ lấy chữ."
+            )
+            hint = "Mở trang nguồn, sao chép phần nội dung chương rồi chọn “Dán nội dung”."
+            can_retry = False
+        elif exc.code == "not_found":
+            title = "Không tìm thấy trang"
+            message = "Địa chỉ này trả về 404 hoặc nội dung đã được gỡ."
+            hint = "Kiểm tra lại số chương và phần cuối của liên kết."
+            can_retry = False
+        elif exc.code == "timeout":
+            message = "Trang nguồn phản hồi quá chậm. Dữ liệu của bạn chưa bị mất."
+        elif exc.code == "rate_limited":
+            message = "Trang nguồn đang giới hạn truy cập. Hãy chờ một chút rồi thử lại."
+        elif exc.code == "dns_failed":
+            title = "Không tìm thấy tên miền"
+            message = "Tên miền trong liên kết không phân giải được."
+            hint = "Kiểm tra lỗi chính tả ở phần tên website."
+            can_retry = False
+        elif exc.code in {"blocked_url", "invalid_url", "unsupported_content"}:
+            title = "Không thể dùng liên kết này"
+            message = str(exc).capitalize()
+            can_retry = False
+    elif isinstance(exc, ExtractionError):
+        title = "Đã tải trang nhưng không tìm thấy nội dung chương"
+        message = "Bố cục của website này chưa được VietReader nhận diện đúng."
+        hint = "Dán phần chữ của chương; không cần dán menu, quảng cáo hoặc bình luận."
+        can_retry = False
+    elif isinstance(exc, ValueError):
+        title = "Chưa có nội dung để đọc"
+        message = "Hãy nhập một liên kết hoặc dán nội dung chương."
+        can_retry = False
+
+    return {
+        "error_title": title,
+        "error_message": message,
+        "error_hint": hint,
+        "error_detail": str(exc),
+        "can_retry": can_retry,
+    }
 
 
 @router.get("/batch", response_class=HTMLResponse)
@@ -246,6 +312,7 @@ async def _run_process(
     dict_repo = DictionaryRepo(session)
     entries = dict_repo.list_enabled()
     dict_version_hash = CompiledDictionary.from_entries(entries).version_hash
+    DictionaryVersionRepo(session).ensure(dict_version_hash, len(entries))
 
     result = await process_chapter(
         source_url=url,
@@ -253,7 +320,7 @@ async def _run_process(
         title=title,
         dictionary_entries=entries,
         dict_version_hash=dict_version_hash,
-        prompt_version=PROMPT_VERSION,
+        prompt_version=state.settings.llm_prompt_version,
         model=state.settings.llm_model,
         provider=state.provider,
         chapter_cache_repo=ChapterCacheRepo(session),
@@ -333,19 +400,28 @@ async def read(
     session=Depends(get_session),  # type: ignore[no-untyped-def]
     state: AppState = Depends(get_app_state),
 ) -> HTMLResponse:
+    normalized_url = ""
     try:
+        normalized_url = normalize_source_url(url) if url.strip() else ""
+        normalized_text = raw_text.strip()
+        if not normalized_url and not normalized_text:
+            raise ValueError("missing URL and pasted text")
         result = await _run_process(
-            session, state, url=url or None, raw_text=raw_text or None, title=title or None
+            session,
+            state,
+            url=normalized_url or None,
+            raw_text=normalized_text or None,
+            title=title.strip() or None,
         )
         series = link_chapter_to_series(
             session,
             chapter_cache_id=result.chapter_cache_id,
-            url=url or None,
+            url=normalized_url or None,
             title=result.chapter.title,
         )
         session.commit()
 
-        context = _reader_context(request, result, url or None, series)
+        context = _reader_context(request, result, normalized_url or None, series)
         response = templates.TemplateResponse(request, "_reader.html", context)
         # Give the chapter a real address: refresh, back button and bookmarking all work, and the
         # chapter survives closing the tab. Only possible when it was cached (validation passed).
@@ -354,10 +430,16 @@ async def read(
         return response
     except Exception as exc:
         session.rollback()
+        logger.info("Could not open reader source: %s", exc)
+        failed_url = normalized_url or url.strip()
         return templates.TemplateResponse(
             request,
             "_reader_error.html",
-            {"request": request, "url": url, "error": str(exc)},
+            {
+                "request": request,
+                "url": failed_url,
+                **_read_error_context(exc, failed_url),
+            },
         )
 
 
@@ -398,8 +480,19 @@ async def set_chapter_navigation(
     if cached is None:
         raise HTTPException(status_code=404, detail=f"chapter {chapter_id} not found in cache")
 
-    repo.set_navigation(chapter_id, next_url=next_url.strip() or None,
-                        prev_url=prev_url.strip() or None)
+    try:
+        normalized_next = normalize_source_url(next_url) if next_url.strip() else None
+        normalized_prev = normalize_source_url(prev_url) if prev_url.strip() else None
+    except SourceURLError as exc:
+        series = SeriesRepo(session).get(cached.series_id) if cached.series_id else None
+        context = _cached_reader_context(request, cached, series)
+        context.update(
+            navigation_error=str(exc),
+            nav_next_value=next_url.strip(),
+            nav_prev_value=prev_url.strip(),
+        )
+        return templates.TemplateResponse(request, "_reader.html", context)
+    repo.set_navigation(chapter_id, next_url=normalized_next, prev_url=normalized_prev)
     session.commit()
 
     refreshed = repo.get_by_id(chapter_id)
@@ -624,5 +717,7 @@ async def feedback_delete(
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, state: AppState = Depends(get_app_state)) -> HTMLResponse:
     return templates.TemplateResponse(
-        request, "settings.html", {"settings": state.settings, "prompt_version": PROMPT_VERSION}
+        request,
+        "settings.html",
+        {"settings": state.settings, "prompt_version": state.settings.llm_prompt_version},
     )

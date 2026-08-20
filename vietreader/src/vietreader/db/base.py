@@ -13,6 +13,7 @@ và migration đều là SQLAlchemy/Alembic thuần, không có SQL riêng cho d
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -36,6 +37,11 @@ def normalize_database_url(url: str) -> str:
     return url
 
 
+def redact_database_url(url: str) -> str:
+    """Hide credentials before a database URL is written to logs."""
+    return re.sub(r"(?<=://)[^/@]+@", "***@", url)
+
+
 def create_db_engine(database_url: str) -> Engine:
     url = normalize_database_url(database_url)
 
@@ -55,7 +61,15 @@ def create_db_engine(database_url: str) -> Engine:
     # Postgres. pool_pre_ping là bắt buộc chứ không phải tối ưu: Neon co compute về 0 sau
     # 5 phút không ai dùng, nên connection nằm sẵn trong pool sẽ chết lặng lẽ. Không có
     # pre_ping thì request đầu tiên sau lúc rảnh sẽ ném lỗi kết nối vào mặt người đọc.
-    return create_engine(url, pool_pre_ping=True, pool_recycle=300)
+    return create_engine(
+        url,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        pool_size=5,
+        max_overflow=5,
+        pool_timeout=10,
+        connect_args={"connect_timeout": 10},
+    )
 
 
 def create_session_factory(engine: Engine) -> sessionmaker[Session]:

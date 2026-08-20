@@ -19,7 +19,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from vietreader.core.dictionary import DictionaryEntryError  # noqa: E402
 from vietreader.core.models import Policy  # noqa: E402
-from vietreader.db.base import create_db_engine, create_session_factory  # noqa: E402
+from vietreader.db.base import (  # noqa: E402
+    create_db_engine,
+    create_session_factory,
+    redact_database_url,
+)
 from vietreader.db.models import Base, DictionaryEntryRow  # noqa: E402
 from vietreader.db.repositories.dictionary import DictionaryRepo  # noqa: E402
 from vietreader.settings import get_settings  # noqa: E402
@@ -30,7 +34,8 @@ SEED_PATH = Path(__file__).resolve().parents[1] / "config" / "seed_dictionary.ym
 def main() -> None:
     settings = get_settings()
     engine = create_db_engine(settings.database_url)
-    Base.metadata.create_all(engine)
+    if settings.auto_create_schema:
+        Base.metadata.create_all(engine)
     session_factory = create_session_factory(engine)
 
     data = yaml.safe_load(SEED_PATH.read_text(encoding="utf-8"))
@@ -61,7 +66,8 @@ def main() -> None:
                 session.rollback()
                 skipped += 1
 
-    print(f"Seeded {created} new entries into {settings.database_url} ({skipped} already existed).")
+    safe_url = redact_database_url(settings.database_url)
+    print(f"Seeded {created} new entries into {safe_url} ({skipped} already existed).")
 
 
 if __name__ == "__main__":

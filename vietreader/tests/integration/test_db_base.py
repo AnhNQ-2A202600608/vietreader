@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
-from vietreader.db.base import create_db_engine, create_session_factory, session_scope
+from vietreader.db.base import (
+    create_db_engine,
+    create_session_factory,
+    redact_database_url,
+    session_scope,
+)
 from vietreader.db.models import Base
 
 
@@ -54,3 +59,11 @@ def test_session_scope_rolls_back_on_error(tmp_path) -> None:  # type: ignore[no
         count = session.query(RunLogRow).count()
     assert count == 0
     engine.dispose()
+
+
+def test_redact_database_url_hides_credentials() -> None:
+    url = "postgresql://vietreader_owner:npg_secret@ep-example.neon.tech/vietreader"
+    redacted = redact_database_url(url)
+
+    assert redacted == "postgresql://***@ep-example.neon.tech/vietreader"
+    assert "npg_secret" not in redacted

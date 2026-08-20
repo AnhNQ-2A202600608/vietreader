@@ -87,3 +87,14 @@ async def test_disambiguate_raises_on_http_error_status() -> None:
 
     with pytest.raises(httpx.HTTPStatusError):
         await provider.disambiguate(_one_item(), temperature=0.0, max_tokens=40)
+
+
+async def test_unknown_prompt_version_fails_before_network() -> None:
+    provider = AnthropicProvider(
+        api_key="test-key",
+        model=MODEL,
+        prompt_version="does-not-exist",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200)),
+    )
+    with pytest.raises(ValueError, match="prompt version"):
+        await provider.disambiguate(_one_item(), temperature=0.0, max_tokens=40)

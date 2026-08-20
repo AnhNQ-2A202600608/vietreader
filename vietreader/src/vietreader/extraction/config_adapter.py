@@ -10,6 +10,7 @@ from selectolax.parser import HTMLParser, Node
 
 from vietreader.core.models import Chapter
 from vietreader.core.normalize import normalize_text, split_paragraphs
+from vietreader.core.series import infer_chapter_title
 from vietreader.extraction.base import ExtractionError
 
 _URL_ATTRS = {"href", "src"}
@@ -99,9 +100,10 @@ class ConfigAdapter:
                 node.decompose()
 
         paragraphs = _extract_paragraphs(content_node, self.config.paragraph_split)
+        inferred_title = infer_chapter_title(title, source_url, paragraphs)
 
         return Chapter(
-            title=normalize_text(title),
+            title=inferred_title,
             paragraphs=paragraphs,
             next_url=next_url,
             prev_url=prev_url,

@@ -412,6 +412,7 @@ button.primary:hover, .btn.primary:hover {
 }
 
 button.ghost { border-color: transparent; background: transparent; }
+.btn.ghost { border-color: transparent; background: transparent; }
 button.icon { padding: 0.45rem 0.65rem; }
 button.danger:hover { border-color: var(--warn-fg); color: var(--warn-fg); }
 
@@ -585,6 +586,83 @@ textarea { min-height: 8rem; resize: vertical; line-height: 1.55; }
   background: var(--border);
 }
 
+.open-chapter { margin-top: var(--s6); }
+
+.section-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s5);
+  margin-bottom: var(--s3);
+}
+
+.section-intro h2 { margin: 0; }
+.section-intro > p { max-width: 34rem; margin: 0; color: var(--muted); font-size: var(--t-sm); }
+
+.source-form {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s4);
+  padding: var(--s5);
+  background: linear-gradient(135deg, var(--surface), var(--accent-soft));
+}
+
+.source-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--r-md);
+  color: var(--accent-fg);
+  background: linear-gradient(135deg, var(--btn-a), var(--btn-b));
+  font-size: var(--t-xl);
+  font-weight: 700;
+}
+
+.source-form-body { flex: 1; min-width: 0; }
+.source-form-body > label { display: block; font-weight: 700; margin-bottom: var(--s1); }
+
+.field-hint {
+  margin: 0 0 var(--s3);
+  color: var(--muted);
+  font-size: var(--t-xs);
+}
+
+.field-hint code { overflow-wrap: anywhere; }
+.url-entry-row { display: flex; gap: var(--s2); align-items: stretch; }
+.url-entry-row input { min-width: 0; }
+.url-entry-row button { flex: 0 0 auto; }
+
+.load-state { display: block; min-height: 1.7rem; margin-top: var(--s2); }
+
+.paste-fallback {
+  margin: calc(-1 * var(--s3)) var(--s3) var(--s5);
+  border: 2px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.paste-fallback > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  cursor: pointer;
+  color: var(--fg);
+  list-style: none;
+}
+
+.paste-fallback > summary::-webkit-details-marker { display: none; }
+.paste-fallback > summary span:first-child { display: grid; }
+.paste-fallback > summary small { color: var(--muted); font-weight: 400; }
+.paste-fallback[open] > summary span:last-child { transform: rotate(45deg); }
+.paste-fallback > summary span:last-child { transition: transform 150ms ease; }
+.paste-form { padding: var(--s3) var(--s4) var(--s4); border-top: 1px solid var(--border); }
+.optional { color: var(--muted); font-weight: 400; letter-spacing: 0; }
+
 /* ============================ lists ===================================== */
 
 .list { list-style: none; padding: 0; margin: 0; }
@@ -653,8 +731,45 @@ textarea { min-height: 8rem; resize: vertical; line-height: 1.55; }
 .reader-head { margin-bottom: var(--s4); }
 .reader-head h2 { margin-bottom: var(--s1); }
 
-/* Khoảng thở giữa thanh công cụ và thân chương (trước đây do thanh thống kê tạo ra). */
-.reader-root > .toolbar { margin-bottom: var(--s5); }
+.source-link { display: inline-block; font-size: var(--t-xs); color: var(--muted); }
+
+.reader-notice {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--mint-soft);
+  color: var(--mint);
+  font-size: var(--t-xs);
+}
+
+.reader-toolbar {
+  position: sticky;
+  top: 4.5rem;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0 calc(-1 * var(--s3)) var(--s5);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-1);
+}
+
+.chapter-navigation, .reading-controls, .font-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+.font-controls { flex-wrap: nowrap; }
 
 /* Vùng chữ giữ nền phẳng, không gradient: đây là chỗ mắt ở lại lâu nhất. */
 .reader-text {
@@ -664,7 +779,8 @@ textarea { min-height: 8rem; resize: vertical; line-height: 1.55; }
   color: var(--fg);
 }
 
-.reader-text p { margin: 0 0 1.15em; }
+.reader-text p { margin: 0 0 1.15em; text-wrap: pretty; }
+.reader-text p + p { text-indent: 1.35em; }
 
 .reader-text .changed {
   border-radius: var(--r-sm);
@@ -700,6 +816,27 @@ textarea { min-height: 8rem; resize: vertical; line-height: 1.55; }
   margin-bottom: var(--s4);
   font-size: var(--t-sm);
 }
+
+.reader-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s5);
+  margin-top: var(--s5);
+  padding: var(--s5);
+  border: 2px solid color-mix(in srgb, var(--warn-fg) 24%, var(--border));
+  border-radius: var(--r-lg);
+  background: var(--warn-bg);
+}
+
+.error-illustration { flex: 0 0 auto; }
+.error-body { min-width: 0; flex: 1; }
+.error-body h2 { margin-bottom: var(--s2); }
+.error-message { margin: 0 0 var(--s2); font-weight: 600; }
+.error-hint { margin: 0 0 var(--s4); color: var(--muted); }
+.error-actions { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.error-actions form { display: flex; align-items: center; gap: var(--s2); }
+.error-detail { margin-top: var(--s4); font-size: var(--t-xs); color: var(--muted); }
+.error-detail code { display: block; margin-top: var(--s2); overflow-wrap: anywhere; }
 
 .position-note {
   background: var(--mint-soft);
@@ -1044,6 +1181,19 @@ tbody tr:hover { background: var(--surface); }
   h1 { font-size: var(--t-xl); }
 
   .continue-card { flex-direction: column; align-items: flex-start; }
+  .section-intro { display: block; }
+  .section-intro > p { margin-top: var(--s2); }
+  .source-form { padding: var(--s4); }
+  .source-icon { display: none; }
+  .url-entry-row { flex-direction: column; }
+  .url-entry-row button { width: 100%; }
+  .reader-toolbar { position: static; align-items: stretch; flex-direction: column; }
+  .chapter-navigation, .reading-controls { justify-content: space-between; }
+  .reader-notice { display: block; }
+  .reader-notice span { display: block; margin-top: var(--s1); }
+  .reader-error { flex-direction: column; gap: var(--s3); padding: var(--s4); }
+  .error-actions, .error-actions form { align-items: stretch; flex-direction: column; width: 100%; }
+  .error-actions button, .error-actions .btn { width: 100%; }
   .fab { right: var(--s4); bottom: var(--s4); }
 
   /* Trên điện thoại, tấm ghi chú kéo lên từ đáy dễ với tay hơn. */

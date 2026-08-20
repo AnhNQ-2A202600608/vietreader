@@ -282,6 +282,12 @@ def render_report(results: list[CaseResult], live: bool) -> str:
 
 
 def main() -> None:
+    # Windows terminals may default to cp1252, which cannot print Vietnamese or ✓/✗.
+    # Reconfigure only the CLI streams; report files are already written explicitly as UTF-8.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="use the real Anthropic provider")
     args = parser.parse_args()

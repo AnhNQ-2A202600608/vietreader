@@ -263,3 +263,67 @@ Ghi ngắn gọn mọi assumption/deviation phát sinh trong quá trình agent t
   đây có specificity cao hơn `@media (prefers-color-scheme: dark)`, khiến dark mode hệ thống
   KHÔNG BAO GIỜ áp dụng. Nay thuộc tính chỉ được đặt khi người dùng chọn tường minh, và khối
   media query được guard bằng `:root:not([data-theme="light"])`.
+
+## Phase 12 — Hardening và sửa lỗi tích hợp (2026-08-20)
+
+- **Khôi phục `series_id` khi map ORM row sang `ChapterCacheEntry`.** Trước đó DB lưu đúng nhưng
+  DTO luôn dùng giá trị mặc định `None`, làm chương mở lại mất metadata bộ và lọt vào danh sách
+  chương lẻ. Có test repository và web khóa đường round-trip này.
+- **Render chỉ deploy sau CI bằng native `checksPass`.** Blueprint dùng
+  `autoDeployTrigger: checksPass`, nên không còn Deploy Hook/secret riêng; workflow
+  `deploy.yml` chỉ phục vụ self-host.
+- **Public deployment bắt buộc Basic Auth.** Local vẫn không cần credentials. Blueprint Render
+  đặt `VIETREADER_REQUIRE_AUTH=1`, nên thiếu password sẽ fail-fast thay vì âm thầm mở dữ liệu.
+  Unsafe browser request khác origin bị từ chối; healthcheck và static assets vẫn public.
+- **Fetcher chặn SSRF và bật TLS verification.** Chỉ HTTP(S), không userinfo, mặc định từ chối
+  localhost/private/link-local/non-public IP và kiểm tra từng redirect trước khi gửi request.
+  Intranet là opt-in rõ ràng qua `VIETREADER_FETCH_ALLOW_PRIVATE_NETWORKS`.
+- **Quick-add normalize NFC + lowercase nhưng giữ display gốc.** Người dùng có thể bôi từ ở đầu
+  câu như “Lão giả” mà không vi phạm invariant surface lowercase.
+- **Các setting prompt/log/version được nối vào runtime.** Prompt version chọn đúng resource,
+  log level cấu hình logging, và mỗi dictionary hash được ghi idempotent vào
+  `dictionary_version` thay vì để bảng này chết.
+- **Eval CLI ép stdout/stderr UTF-8 trên Windows.** Report vốn ghi UTF-8 nhưng bước `print()`
+  trước đó chết trên terminal cp1252 khi gặp tiếng Việt hoặc dấu ✓/✗, khiến `make eval` không
+  chạy được dù toàn bộ case đã tính xong.
+
+## Phase 13 — Làm lại UX nhập nguồn và định dạng đọc (2026-08-20)
+
+- **Chuẩn hoá URL tại một điểm dùng chung.** Nhận tên miền thiếu scheme, protocol-relative URL,
+  link Markdown/`<...>` và bỏ ký tự zero-width do copy/paste; web, JSON API, batch và liên kết
+  chương tay đều dùng cùng quy tắc. Không tự xoá query/trailing punctuation vì chúng có thể là
+  phần có nghĩa của URL.
+- **Lỗi fetch có mã nguyên nhân và chiến lược retry.** 401/403/404/410, URL không an toàn, content
+  không phải văn bản và browser challenge/CAPTCHA thất bại ngay; chỉ lỗi mạng, timeout, 429 và 5xx
+  mới retry. UI không đổ exception thô làm thông điệp chính mà đưa ra hành động phù hợp: thử lại,
+  kiểm tra link, mở nguồn hoặc dán nội dung.
+- **Tách rõ “Mở từ liên kết” và “Dán nội dung”.** Link là primary flow; paste là fallback có thể
+  bung ra ngay từ error card. Trạng thái chờ chiếm chỗ rõ ràng, nút bị khoá trong request, kết quả
+  dùng `aria-live` và màn hình đọc gom điều hướng riêng khỏi tuỳ chỉnh hiển thị.
+- **Tách đoạn thích ứng cho nội dung dán tay.** Khi không có blank line nhưng có ít nhất ba dòng
+  đủ dài, mỗi dòng trở thành một đoạn; văn bản có blank line rõ ràng vẫn giữ thuật toán cũ. Text
+  trong inline HTML dùng separator là dấu cách để không còn lỗi kiểu `Thiếu niênáo đenbước vào`.
+
+## Phase 14 — Khôi phục tiêu đề chương thiếu (2026-08-20)
+
+- **Tiêu đề được suy luận theo một quy tắc dùng chung.** Ưu tiên metadata/tiêu đề explicit, sau
+  đó ba đoạn mở đầu có marker như “Chương”, “Hồi”, “Ngoại truyện”; một heading ngắn chỉ được nhận
+  khi theo sau là đoạn văn dài rõ rệt. Cuối cùng mới suy từ số chương trong URL. Quy tắc dùng cho
+  paste text, generic extractor, YAML adapter và cache legacy.
+- **Dữ liệu cache cũ không cần backfill để hiển thị đúng.** `ChapterCacheRepo` dựng display title
+  từ `raw_text`/URL khi cột `title` cũ rỗng, nên deploy code mới là thư viện tự lành ngay. Chương
+  dán mới còn bỏ dòng heading đã suy luận khỏi body để không hiện tiêu đề hai lần.
+
+## Phase 15 — Chốt đường production Render + Neon (2026-08-20)
+
+- **Tách liveness và readiness.** `/api/health` là probe nhẹ; `/api/ready` thực hiện `SELECT 1`
+  và là health check của Render, nên bản deploy mất kết nối Neon không được nhận traffic.
+- **Production không tự tạo schema.** `VIETREADER_AUTO_CREATE_SCHEMA=0` buộc Alembic là nguồn
+  sự thật duy nhất. `VIETREADER_REQUIRE_POSTGRES=1` fail-fast nếu thiếu/nhầm Neon URL, tránh
+  fallback SQLite trên filesystem tạm.
+- **Giới hạn pool và đóng engine có chủ ý.** Kết nối PostgreSQL có pre-ping, recycle, connect/
+  checkout timeout và giới hạn 10 connection mỗi instance; lifespan dispose pool khi tắt.
+- **Không ghi credentials vào log.** Seed và startup chỉ in database URL đã che user/password.
+- **Docker build tự bảo vệ line ending Linux.** `.gitattributes` ép shell script dùng LF;
+  Dockerfile vẫn normalize CRLF và đặt executable bit như lớp an toàn cuối. CI build rồi import
+  runtime từ image để lỗi đóng gói không lọt qua chỉ vì pytest chạy được trên máy dev.

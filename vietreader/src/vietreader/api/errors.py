@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from vietreader.core.dictionary import DictionaryEntryError
 from vietreader.extraction.base import ExtractionError
 from vietreader.extraction.fetcher import FetchError
+from vietreader.extraction.urls import SourceURLError
 
 PASTE_HINT = "Thử dán trực tiếp nội dung chương"
 
@@ -27,7 +28,14 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(FetchError)
     async def _fetch_error(request: Request, exc: FetchError) -> JSONResponse:
         return JSONResponse(
-            status_code=422, content=_envelope("fetch_error", str(exc), PASTE_HINT)
+            status_code=422, content=_envelope(exc.code, str(exc), PASTE_HINT)
+        )
+
+    @app.exception_handler(SourceURLError)
+    async def _source_url_error(request: Request, exc: SourceURLError) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=_envelope("invalid_url", str(exc), "Kiểm tra lại địa chỉ chương"),
         )
 
     @app.exception_handler(DictionaryEntryError)

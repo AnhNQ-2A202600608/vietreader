@@ -9,8 +9,10 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import SQLAlchemyError
 
 from vietreader.api.app import create_app
+from vietreader.api.deps import get_session
 from vietreader.llm.provider import FakeProvider
 from vietreader.settings import Settings
 
@@ -39,6 +41,27 @@ async def test_health(client: AsyncClient) -> None:
 
     resp_head = await client.head("/api/health")
     assert resp_head.status_code == 200
+
+    ready = await client.get("/api/ready")
+    assert ready.status_code == 200
+    assert ready.json() == {"status": "ready"}
+
+
+async def test_readiness_returns_503_when_database_is_unavailable(
+    client: AsyncClient, app: FastAPI
+) -> None:
+    class BrokenSession:
+        def execute(self, _statement: object) -> None:
+            raise SQLAlchemyError("database unavailable")
+
+    app.dependency_overrides[get_session] = BrokenSession
+    try:
+        response = await client.get("/api/ready")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "unavailable"}
 
 
 async def test_openapi_and_docs_load(client: AsyncClient) -> None:
@@ -110,6 +133,48 @@ async def test_dictionary_quick_add(client: AsyncClient) -> None:
     )
     assert resp.status_code == 201
     assert resp.json()["display"] == "đạo hữu"
+
+
+async def test_dictionary_quick_add_normalizes_selected_title_case(client: AsyncClient) -> None:
+    resp = await client.post(
+        "/api/dictionary/quick-add",
+        json={"surface": "Lão giả", "policy": "replace", "replacement": "ông lão"},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["surface"] == "lão giả"
+    assert resp.json()["display"] == "Lão giả"
+
+
+async def test_cross_site_mutation_is_rejected(client: AsyncClient) -> None:
+    resp = await client.post(
+        "/api/dictionary/quick-add",
+        headers={"Origin": "https://attacker.example", "Sec-Fetch-Site": "cross-site"},
+        json={"surface": "x", "policy": "keep"},
+    )
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "csrf_rejected"
+
+
+async def test_optional_basic_auth_protects_data_but_not_health(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    protected_app = create_app(
+        settings=Settings(
+            database_url=f"sqlite:///{tmp_path / 'protected.db'}",
+            auth_username="reader",
+            auth_password="secret",
+            require_auth=True,
+        ),
+        provider=FakeProvider(mode="correct"),
+    )
+    async with AsyncClient(
+        transport=ASGITransport(app=protected_app), base_url="http://test"
+    ) as protected_client:
+        assert (await protected_client.get("/api/health")).status_code == 200
+        assert (await protected_client.get("/api/ready")).status_code == 200
+        assert (await protected_client.get("/api/dictionary")).status_code == 401
+        allowed = await protected_client.get(
+            "/api/dictionary", auth=("reader", "secret")
+        )
+        assert allowed.status_code == 200
 
 
 async def test_dictionary_import_and_export(client: AsyncClient) -> None:
@@ -225,5 +290,5 @@ async def test_chapters_process_fetch_error_returns_422_with_paste_hint(
     resp = await client.post("/api/chapters/process", json={"url": "https://example.com/chap/1"})
     assert resp.status_code == 422
     body = resp.json()
-    assert body["error"]["code"] == "fetch_error"
+    assert body["error"]["code"] == "blocked_by_site"
     assert "dán trực tiếp" in body["error"]["hint"]

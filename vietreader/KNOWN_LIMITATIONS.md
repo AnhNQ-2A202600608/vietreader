@@ -1,6 +1,6 @@
 # KNOWN LIMITATIONS
 
-Trung thực về những gì chưa hoàn thiện / chưa được kiểm chứng đầy đủ, tính đến hết Phase 9.
+Trung thực về những gì chưa hoàn thiện / chưa được kiểm chứng đầy đủ, tính đến hết Phase 13.
 
 ## Chưa chạy được với LLM thật
 Không có `ANTHROPIC_API_KEY` trong môi trường agent lúc build. Toàn bộ logic L3
@@ -12,11 +12,12 @@ Không có `ANTHROPIC_API_KEY` trong môi trường agent lúc build. Toàn bộ
   index 0), KHÔNG phải chất lượng đáng tin cậy của LLM thật. Cần chạy `--live` với API key thật
   trước khi coi số liệu này là đại diện cho chất lượng sản phẩm.
 
-## Screenshot UI
-Môi trường agent không có trình duyệt/khả năng chụp ảnh màn hình. Phase 7 đã xác minh UI bằng
-HTTP request thật (curl/httpx) tới server thật đang chạy + 11 test tự động qua `httpx.AsyncClient`
-(bao gồm 1 test end-to-end quick-add thật), nhưng chưa có ai xác nhận trải nghiệm thị giác thật
-trong trình duyệt (bố cục, dark mode, popup quick-add khi bôi đen chuột thật, v.v.).
+## Kiểm thử UI
+UI có test HTTP/ASGI tự động và đã được kiểm tra qua một máy chủ Uvicorn local chạy thật; lượt gần
+nhất còn tải end-to-end một trang mẫu công khai bằng URL thiếu `https://`. Bộ điều khiển trình duyệt
+trực quan trong môi trường xác minh hiện tại không khởi tạo được do lỗi metadata của connector, nên
+visual regression, khác biệt Safari/iOS và thao tác chọn chữ bằng cảm ứng vẫn cần kiểm tra trên
+trình duyệt hoặc thiết bị thật.
 
 ## `make` — ĐÃ GIẢI QUYẾT (Phase 10)
 Giới hạn này thuộc về máy Windows dùng để build ban đầu, không phải về code. Trên máy macOS hiện
@@ -100,11 +101,11 @@ Sửa `surface`/`policy`/`replacement`/`candidates` qua UI web cần xoá rồi 
 `PATCH /api/dictionary/{id}` KHÔNG bị giới hạn này — hỗ trợ sửa mọi field). Xem Phase 7
 Assumptions.
 
-## `series_key` (nhóm chương theo truyện) đơn giản hoá
-`series_key` hiện = URL của chương (hoặc `"raw"` khi paste text), KHÔNG có khái niệm "truyện"
-độc lập nhóm nhiều chương/URL khác nhau lại với nhau. Vị trí đọc được lưu theo từng URL/nguồn
-riêng biệt, không tự động liên kết "chương 2" với "chương 1" của cùng bộ truyện trừ khi URL cùng
-series_key. Xem Phase 7 Assumptions.
+## Bảo vệ URL fetch là bảo thủ
+Fetcher chỉ cho HTTP(S), xác minh TLS và mặc định chặn localhost, IP private, link-local cùng các
+địa chỉ không public. Vì vậy URL chương nằm trong intranet/NAS sẽ bị từ chối cho tới khi người vận
+hành chủ động đặt `VIETREADER_FETCH_ALLOW_PRIVATE_NETWORKS=true`. Không bật biến này trên service
+công khai.
 
 ## Coverage `core/dictionary.py` 86% (không phải 100%)
 Các dòng chưa cover chủ yếu là nhánh raise lỗi invariant cụ thể (`DictionaryEntryError` cho từng

@@ -40,6 +40,8 @@ async def test_home_page_renders(client: AsyncClient) -> None:
     assert resp.status_code == 200
     assert "Đọc" in resp.text
     assert 'hx-post="/read"' in resp.text
+    assert "Bạn muốn đọc từ đâu?" in resp.text
+    assert "Dán nội dung chương" in resp.text
 
 
 async def test_dictionary_page_renders(client: AsyncClient) -> None:
@@ -67,6 +69,62 @@ async def test_read_raw_text_renders_reader_fragment(client: AsyncClient) -> Non
     assert resp.status_code == 200
     assert "Xin chào thế giới" in resp.text
     assert "T1" in resp.text
+
+
+async def test_pasted_heading_becomes_title_in_reader_and_library(client: AsyncClient) -> None:
+    raw = (
+        "Chương 51 — Trở lại cố hương\n\n"
+        "Con đường cũ vẫn chạy dọc theo bờ sông nhưng hàng cây đã cao hơn trước."
+    )
+
+    read = await client.post("/read", data={"raw_text": raw})
+    library = await client.get("/library")
+
+    assert "<h2>Chương 51 — Trở lại cố hương</h2>" in read.text
+    assert read.text.count("Chương 51 — Trở lại cố hương") == 2  # data attribute + heading
+    assert "Chương 51 — Trở lại cố hương" in library.text
+    assert "(không có tiêu đề)" not in library.text
+
+
+async def test_read_normalizes_a_domain_only_url(app: FastAPI, client: AsyncClient) -> None:
+    requested: list[str] = []
+    html = (
+        "<html><body><article><h1>Chương 12</h1>"
+        "<p>Nội dung chương đủ dài để bộ trích xuất nhận diện chính xác.</p>"
+        "<p>Đoạn thứ hai cũng đủ dài và giữ nguyên định dạng khi hiển thị.</p>"
+        "</article></body></html>"
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested.append(str(request.url))
+        return httpx.Response(200, headers={"content-type": "text/html"}, text=html)
+
+    app.state.app_state.fetcher = Fetcher(
+        delay_seconds=0, transport=httpx.MockTransport(handler)
+    )
+    resp = await client.post("/read", data={"url": "truyen.example/chuong-12"})
+
+    assert resp.status_code == 200
+    assert requested == ["https://truyen.example/chuong-12"]
+    assert "Nội dung chương đủ dài" in resp.text
+    assert "https://truyen.example/chuong-12" in resp.text
+
+
+async def test_read_failure_explains_blocked_site_and_offers_paste(
+    app: FastAPI, client: AsyncClient
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, text="Forbidden")
+
+    app.state.app_state.fetcher = Fetcher(
+        delay_seconds=0, max_retries=3, transport=httpx.MockTransport(handler)
+    )
+    resp = await client.post("/read", data={"url": "https://blocked.example/chapter"})
+
+    assert resp.status_code == 200
+    assert "Trang nguồn đang chặn đọc tự động" in resp.text
+    assert "Dán nội dung thay thế" in resp.text
+    assert "Chi tiết kỹ thuật" in resp.text
 
 
 async def test_reader_page_by_id_after_processing(client: AsyncClient) -> None:
@@ -279,6 +337,27 @@ async def test_navigation_can_be_set_by_hand(client: AsyncClient) -> None:
     assert "https://truyen.vn/abc/chuong-2" in reopened.text
 
 
+async def test_navigation_normalizes_missing_scheme_and_keeps_invalid_form_visible(
+    client: AsyncClient,
+) -> None:
+    read = await client.post("/read", data={"raw_text": "Chương dán tay.", "title": "C1"})
+    chapter_id = read.headers["HX-Push-Url"].rsplit("/", 1)[1]
+
+    saved = await client.post(
+        f"/reader/{chapter_id}/navigation",
+        data={"next_url": "truyen.vn/abc/chuong-2"},
+    )
+    assert "https://truyen.vn/abc/chuong-2" in saved.text
+
+    invalid = await client.post(
+        f"/reader/{chapter_id}/navigation",
+        data={"next_url": "không phải liên kết"},
+    )
+    assert invalid.status_code == 200
+    assert "Hãy nhập một địa chỉ web" in invalid.text
+    assert "không phải liên kết" in invalid.text
+
+
 async def test_navigation_can_be_cleared(client: AsyncClient) -> None:
     read = await client.post("/read", data={"raw_text": "Chương khác.", "title": "C2"})
     chapter_id = read.headers["HX-Push-Url"].rsplit("/", 1)[1]
@@ -389,6 +468,10 @@ async def test_chapters_of_one_story_group_into_a_series(
     page = await client.get(f"/series/{series_id}")
     assert page.status_code == 200
     assert "2 chương" in page.text
+
+    reopened = await client.get(first.headers["HX-Push-Url"])
+    assert f'href="/series/{series_id}"' in reopened.text
+    assert "Chương lẻ" not in library.text
 
 
 async def test_two_stories_on_one_site_do_not_merge(app: FastAPI, client: AsyncClient) -> None:

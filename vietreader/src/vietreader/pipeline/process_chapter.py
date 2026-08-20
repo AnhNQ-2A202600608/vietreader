@@ -107,6 +107,10 @@ async def process_chapter(
     raw_joined = PARAGRAPH_SEP.join(raw_paragraphs)
     raw_hash = compute_raw_hash(raw_joined)
 
+    # Compile before the cache lookup as well: cache-hit statistics should describe all
+    # matcher spans (including KEEP and fallback ASK), not only replacements in the changelog.
+    compiled = CompiledDictionary.from_entries(dictionary_entries)
+
     # 2. cache_key; hit -> return cached result
     source_key = compute_source_key(raw_hash, dict_version_hash, prompt_version, model)
     cached = chapter_cache_repo.get(source_key)
@@ -125,11 +129,15 @@ async def process_chapter(
         # the chapter was first extracted so "next chapter" still works from the library.
         if chapter.next_url is None and chapter.prev_url is None:
             chapter = replace(chapter, next_url=cached.next_url, prev_url=cached.prev_url)
+        cached_spans = [match(paragraph, compiled) for paragraph in raw_paragraphs]
+        cached_ask_count = sum(
+            span.policy is Policy.ASK for spans in cached_spans for span in spans
+        )
         duration_ms = (time.monotonic() - start) * 1000
         stats = ProcessStats(
-            span_count=len(changelog),
+            span_count=sum(len(spans) for spans in cached_spans),
             replace_count=sum(1 for c in changelog if c.source == "replace"),
-            ask_count=sum(1 for c in changelog if c.source in ("llm", "llm_fallback")),
+            ask_count=cached_ask_count,
             llm_calls=0,
             llm_cache_hits=0,
             duration_ms=duration_ms,
@@ -147,8 +155,6 @@ async def process_chapter(
 
     # 3. compile dictionary (CompiledDictionary.from_entries recomputes version_hash; caller
     #    is responsible for keeping dict_version_hash in sync -- see Phase 6 wiring)
-    compiled = CompiledDictionary.from_entries(dictionary_entries)
-
     # 4a. match, per paragraph
     spans_by_para: dict[int, list[Span]] = {}
     for index, paragraph in enumerate(raw_paragraphs):

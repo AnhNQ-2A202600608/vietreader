@@ -1,365 +1,174 @@
-# Đưa VietReader lên Render + Neon — miễn phí, không cần thẻ
+# Đưa VietReader lên Render + Neon
 
-Cách deploy **không cần thẻ tín dụng, không cần máy chủ riêng, không tốn tiền**. Cả Render lẫn
-Neon đều cho đăng ký bằng tài khoản GitHub và không hỏi thẻ.
+Đây là đường triển khai chính của dự án: Render chạy container, Neon giữ dữ liệu PostgreSQL.
+`render.yaml` đã cấu hình migration, readiness check, auth bắt buộc và chỉ deploy sau khi CI
+GitHub xanh.
 
-Có sẵn CI/CD: push vào `main` → GitHub chạy test → test xanh thì Render tự deploy. Không phải
-khai SSH key hay secret nào cho việc deploy.
+> Gói Free phù hợp để dùng cá nhân/thử nghiệm, không phải production có cam kết. Render ghi rõ
+> Free Web Service sẽ ngủ sau 15 phút không có traffic, mất khoảng một phút để thức lại, dùng
+> filesystem tạm và không nên dùng cho ứng dụng production. Nếu cần truy cập ổn định, chọn ít
+> nhất gói Starter của Render.
 
-**Thời gian:** khoảng 30 phút.
+## 1. Bạn cần chuẩn bị
 
----
+- Repo GitHub chứa toàn bộ thư mục gốc, gồm `render.yaml` và `.github/workflows/ci.yml`.
+- Một project Neon, nên đặt cùng khu vực Singapore với service Render.
+- Một mật khẩu riêng, dài cho VietReader.
+- API key Anthropic chỉ khi muốn dùng mục từ điển có policy `ASK`.
 
-## Mục lục
+Không gửi connection string, password hoặc API key vào chat, issue hay commit Git.
 
-| | |
-|---|---|
-| [0. Đánh đổi phải biết trước](#0-đánh-đổi-phải-biết-trước) | Đọc trước khi bắt đầu |
-| [1. Đẩy mã nguồn lên GitHub](#1-đẩy-mã-nguồn-lên-github) | |
-| [2. Tạo database trên Neon](#2-tạo-database-trên-neon) | Miễn phí, không thẻ, không hết hạn |
-| [3. Tạo service trên Render](#3-tạo-service-trên-render) | Đọc `render.yaml` sẵn trong repo |
-| [4. Khai biến môi trường](#4-khai-biến-môi-trường) | Chỗ dễ mất dữ liệu nhất |
-| [5. Kiểm tra](#5-kiểm-tra) | Gồm bài test dữ liệu có bền không |
-| [6. Chắn truy cập](#6-chắn-truy-cập) | App không có lớp đăng nhập |
-| [7. CI/CD](#7-cicd-push-main-là-tự-deploy) | Đã bật sẵn |
-| [8. Đỡ phải chờ app ngủ dậy](#8-đỡ-phải-chờ-app-ngủ-dậy) | Đánh thức tự động |
-| [9. Sao lưu](#9-sao-lưu) | Neon lo phần lớn |
-| [10. Khắc phục sự cố](#10-khắc-phục-sự-cố) | |
-| [11. Vì sao là Postgres chứ không SQLite](#11-vì-sao-là-postgres-chứ-không-sqlite) | |
+## 2. Tạo database Neon
 
----
+1. Tạo project `vietreader` và chọn region Singapore nếu dashboard có lựa chọn này.
+2. Mở **Connect**.
+3. Bật **Pooled connection** rồi copy toàn bộ connection string.
+4. Kiểm tra hostname có `-pooler` và giữ nguyên các query parameter bảo mật Neon cấp, thường là
+   `sslmode=require&channel_binding=require`.
 
-## 0. Đánh đổi phải biết trước
+Ví dụ (không dùng chuỗi này):
 
-Miễn phí thật, nhưng có ba cái giá:
-
-**App ngủ sau 15 phút không ai dùng.** Mở lại phải chờ **khoảng một phút**. Đây là cơ chế của
-gói free Render, không sửa code trong app mà tránh được. Nhưng **§8 cho bạn cách tự động đánh
-thức nó trong khung giờ bạn hay đọc**, nên thực tế bạn sẽ hiếm khi phải chờ.
-
-**Dữ liệu nằm ở Neon, giới hạn 0,5 GB.** Đủ cho hàng nghìn chương. Chạm trần thì database bị
-tạm dừng cho tới chu kỳ sau — không mất dữ liệu, nhưng app sẽ lỗi cho tới lúc đó.
-
-**Không có SSH và không chạy được lệnh một lần.** Nên việc nạp từ điển mẫu phải làm tự động lúc
-khởi động (đã cấu hình sẵn, §4).
-
-Nếu sau này bạn có một máy bật được 24/7, [DEPLOY.md](DEPLOY.md) cho bạn SQLite, không ngủ,
-không cold start — đổi lại phải tự dựng.
-
----
-
-## 1. Đẩy mã nguồn lên GitHub
-
-Render deploy từ repo GitHub (private cũng được).
-
-```bash
-cd /duong-dan-toi/vietreader        # thư mục gốc repo
-git push -u origin main
+```text
+postgresql://owner:password@ep-example-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 ```
 
-Chưa có repo trên GitHub thì tạo một cái rồi:
+VietReader tự chuẩn hoá scheme sang driver `psycopg`, bật `pool_pre_ping` và timeout cho pool.
+Không tự đổi chuỗi thành `postgresql+psycopg2://`.
 
-```bash
-git remote add origin git@github.com:<ten-cua-ban>/vietreader.git
-git push -u origin main
+Gói Neon Free hiện có 0,5 GB storage, 100 CU-hour mỗi project mỗi tháng, scale-to-zero sau 5 phút
+không hoạt động và lịch sử khôi phục 6 giờ. Nếu dữ liệu có giá trị, vẫn phải có bản `pg_dump`
+riêng; 6 giờ không thay thế backup.
+
+## 3. Tạo service Render
+
+1. Vào **New → Blueprint** và kết nối repo GitHub.
+2. Chọn nhánh `main` và để Render đọc `render.yaml` ở gốc repo.
+3. Khi Blueprint hỏi giá trị bí mật, điền ba biến sau.
+
+| Biến | Bắt buộc | Giá trị |
+|---|---:|---|
+| `VIETREADER_DATABASE_URL` | Có | Pooled connection string từ Neon |
+| `VIETREADER_AUTH_PASSWORD` | Có | Mật khẩu dài, riêng cho ứng dụng |
+| `VIETREADER_LLM_API_KEY` | Không | Để trống nếu chưa dùng policy `ASK` |
+
+Các giá trị an toàn đã nằm trong Blueprint:
+
+```text
+VIETREADER_REQUIRE_POSTGRES=1
+VIETREADER_AUTO_CREATE_SCHEMA=0
+VIETREADER_REQUIRE_AUTH=1
+VIETREADER_AUTH_USERNAME=vietreader
+VIETREADER_READER_NAME=Ngân Giang
+VIETREADER_SEED_ON_START=1
 ```
 
-Repo cần có hai file này ở **gốc** (đã có sẵn): `render.yaml` và `.github/workflows/ci.yml`.
+Bạn có thể đổi username và tên người đọc trong tab **Environment**. Không tắt ba cờ
+`REQUIRE_POSTGRES`, `AUTO_CREATE_SCHEMA=0`, `REQUIRE_AUTH` trên service công khai.
 
----
+## 4. Quá trình khởi động production
 
-## 2. Tạo database trên Neon
+Render Free không hỗ trợ pre-deploy command. Vì vậy `scripts/start.sh` chạy đúng thứ tự trong
+container:
 
-1. Vào [neon.com](https://neon.com), **Sign up with GitHub**. Không hỏi thẻ.
-2. **Create project** — đặt tên `vietreader`, chọn region gần bạn nhất
-   (`Asia Pacific (Singapore)` nếu có).
-3. Xong là Neon hiện ngay **Connection string**, dạng:
+1. `alembic upgrade head`;
+2. seed từ điển idempotent nếu `VIETREADER_SEED_ON_START=1`;
+3. khởi động Uvicorn bằng cổng do Render cấp.
 
-```
-postgresql://vietreader_owner:npg_xxxxxxxx@ep-abc-123.ap-southeast-1.aws.neon.tech/vietreader?sslmode=require
-```
+Production không gọi `Base.metadata.create_all`. Nếu migration lỗi, container dừng thay vì tự
+tạo một schema nửa đúng. Nếu thiếu/nhầm URL Neon, `VIETREADER_REQUIRE_POSTGRES=1` cũng khiến app
+dừng ngay thay vì âm thầm ghi SQLite trên đĩa tạm.
 
-**Chép nguyên chuỗi đó, giữ nguyên cả `?sslmode=require`.** Lát nữa dán vào Render.
+Log khởi động đúng có dạng:
 
-> Không phải sửa gì cho khớp driver. Code đã tự chuẩn hoá `postgresql://` sang dạng driver mà
-> dự án cài (`postgresql+psycopg://`) — xem `src/vietreader/db/base.py`. Đây là lỗi kinh điển
-> khi deploy Postgres (`ModuleNotFoundError: psycopg2`) và nó đã được xử lý sẵn.
-
-Gói free của Neon: **0,5 GB, không hết hạn, không cần thẻ.** Compute co về 0 sau 5 phút rảnh và
-tự thức lại khi có truy vấn — app đã bật `pool_pre_ping` để không vỡ vì chuyện đó.
-
----
-
-## 3. Tạo service trên Render
-
-1. Vào [render.com](https://render.com), **Get Started with GitHub**. Không hỏi thẻ.
-2. **New → Blueprint**.
-3. Chọn repo `vietreader`.
-
-Render đọc [`render.yaml`](../render.yaml) ở gốc repo và tự cấu hình mọi thứ: build từ
-`Dockerfile`, `rootDir` là `vietreader`, healthcheck ở `/api/health`, và chỉ deploy khi CI xanh.
-Bạn không phải điền tay mấy ô đó.
-
-Nó sẽ dừng lại hỏi bạn hai biến — sang §4.
-
-> **Nếu Render báo không dùng được Docker trên gói free:** đây là điều tôi không kiểm chứng
-> được trước (tài liệu của Render không nói rõ). Gặp thì báo tôi, chuyển sang runtime Python
-> gốc của Render là được, không cần đổi code — chỉ thay `render.yaml`.
-
----
-
-## 4. Khai biến môi trường
-
-Render hỏi hai biến vì `render.yaml` đánh dấu chúng `sync: false` (không lưu trong repo):
-
-| Biến | Điền gì |
-|---|---|
-| `VIETREADER_DATABASE_URL` | Chuỗi Neon ở §2, dán nguyên |
-| `VIETREADER_LLM_API_KEY` | **Đọc §6 trước.** Để trống cũng chạy được đủ mọi thứ trừ ASK |
-
-> ### Đây là chỗ dễ mất dữ liệu nhất
->
-> Nếu `VIETREADER_DATABASE_URL` để trống, app **không báo lỗi** — nó lặng lẽ quay về SQLite,
-> ghi vào đĩa tạm của Render, và **mất sạch mọi thứ mỗi lần app ngủ dậy hoặc deploy lại**.
->
-> Để chuyện này không âm thầm, app in ra dòng đầu tiên trong log lúc khởi động:
->
-> ```
-> ==> database: postgresql://***@ep-abc-123.ap-southeast-1.aws.neon.tech/vietreader
-> ```
->
-> Thấy `sqlite` hoặc `(không đặt)` ở đó là sai, sửa ngay trước khi dùng thật.
-
-Hai biến còn lại `render.yaml` đã đặt sẵn, không phải làm gì:
-
-- `VIETREADER_READER_NAME=Ngân Giang` — tên trong lời chào. Đổi ở tab Environment.
-- `VIETREADER_SEED_ON_START=1` — nạp 65 entry từ điển mẫu lúc khởi động. Cần thiết vì Render
-  free không cho chạy lệnh một lần. Chạy lại vô hại: script bỏ qua entry đã có, không tạo trùng.
-
-Bấm **Apply**. Lần build đầu mất **10–20 phút** (compile `lxml`, `selectolax`). Xem log ở tab
-**Logs**. Các lần sau nhanh hơn nhiều nhờ cache layer.
-
----
-
-## 5. Kiểm tra
-
-Render cấp địa chỉ dạng `https://vietreader-xxxx.onrender.com`, HTTPS tự động.
-
-```bash
-curl https://<ten-cua-ban>.onrender.com/api/health     # {"status":"ok"}
-```
-
-Mở trên trình duyệt — phải ra trang chủ với lời chào đúng tên bạn.
-
-Trong log lúc khởi động phải thấy đủ bốn dòng này:
-
-```
-==> database: postgresql://***@ep-....neon.tech/vietreader
+```text
+==> database: postgresql://***@ep-....neon.tech/neondb
 ==> alembic upgrade head
 ==> seed từ điển mẫu (VIETREADER_SEED_ON_START=1)
 ==> uvicorn trên cổng 10000
 ```
 
-### Bài test quan trọng nhất: dữ liệu có bền không
+URL trong log đã che cả username và password.
 
-Đừng bỏ qua bước này — nó là toàn bộ lý do phải dùng Postgres.
+## 5. Health check và kiểm tra sau deploy
 
-1. Mở `/dictionary`, thêm một entry bất kỳ.
-2. Trên Render bấm **Manual Deploy → Deploy latest commit** (hoặc chỉ cần đợi app ngủ rồi mở lại).
-3. Mở lại `/dictionary`.
+Blueprint dùng `/api/ready`. Endpoint này chạy `SELECT 1`; Render chỉ chuyển traffic cho phiên
+bản mới khi ứng dụng và Neon đều sẵn sàng. `/api/health` chỉ là liveness nhẹ cho monitor ngoài.
+Cả hai endpoint đều công khai; các trang và API dữ liệu yêu cầu Basic Auth.
 
-Entry còn nguyên là đúng. Entry biến mất nghĩa là app đang chạy trên SQlite — quay lại §4 xem
-dòng `==> database:` trong log.
-
----
-
-## 6. Chắn truy cập
-
-**App không có lớp đăng nhập** — lựa chọn có chủ đích cho ứng dụng cá nhân, và không có biến
-môi trường nào bật nó lên vì trong code không tồn tại tính năng đó.
-
-Địa chỉ `*.onrender.com` nằm công khai trên Internet, và trên Render **không có reverse proxy
-của bạn đứng trước** để gắn mật khẩu vào.
-
-**Cách A — để trống `VIETREADER_LLM_API_KEY`** (khuyến nghị). Mất tính năng ASK: span mơ hồ giữ
-nguyên thay vì hỏi LLM, có ghi WARN vào `run_log`. REPLACE, KEEP, extraction, reader, từ điển,
-ghi chú vẫn chạy đủ. Đổi lại: người lạ mò ra địa chỉ cũng không tiêu được tiền API của bạn.
-
-**Cách B — Cloudflare Access.** Cần tên miền riêng (Render cho gắn Custom Domain miễn phí).
-Cloudflare Access miễn phí tới 50 người, chỉ cho email của bạn vào. Không phải sửa code.
-
-**Cách C — thêm basic auth vào app**, khoảng 20 dòng middleware. **Bảo tôi nếu bạn muốn.**
-
----
-
-## 7. CI/CD: push main là tự deploy
-
-Đã bật sẵn, không phải cấu hình gì thêm.
+Kiểm tra theo thứ tự:
 
 ```bash
-git push origin main
+curl https://<service>.onrender.com/api/health
+curl https://<service>.onrender.com/api/ready
 ```
 
-Rồi chuyện xảy ra theo thứ tự:
+Kết quả mong đợi:
 
-1. GitHub Actions chạy [`ci.yml`](../.github/workflows/ci.yml): ruff + mypy + 185 test.
-2. CI xanh → Render thấy checks pass và tự build, tự deploy.
-3. CI đỏ → Render **không** deploy. Code hỏng test không lên được máy chủ.
+```json
+{"status":"ok"}
+{"status":"ready"}
+```
 
-Điều khiển hành vi này bằng `autoDeployTrigger` trong [`render.yaml`](../render.yaml):
+Sau đó mở URL bằng trình duyệt:
 
-| Giá trị | Nghĩa |
-|---|---|
-| `checksPass` | (đang dùng) chỉ deploy khi CI xanh |
-| `commit` | deploy ngay khi push, không chờ test |
-| `off` | tắt tự động, chỉ deploy tay |
+1. đăng nhập bằng `VIETREADER_AUTH_USERNAME` và password đã đặt;
+2. mở trang chủ, dán một chương có tiêu đề và kiểm tra tiêu đề/body;
+3. thử một link chương thật;
+4. thêm một entry ở `/dictionary`;
+5. **Manual Deploy → Deploy latest commit**;
+6. xác nhận entry và thư viện vẫn còn sau deploy.
 
-Quay về bản cũ: Render → tab **Deploys** → tìm bản trước → **Redeploy**. Nhớ rằng quay lại code
-cũ không tự quay lại schema database; có migration thì phải khôi phục cả DB theo §9.
+Nếu dữ liệu biến mất, dừng sử dụng và kiểm tra ngay `VIETREADER_DATABASE_URL` cùng dòng
+`==> database:` trong log.
 
-> Repo còn một workflow `deploy.yml` — nó dành cho đường tự host ở [DEPLOY.md](DEPLOY.md) và
-> **tự bỏ qua** khi không có secret `DEPLOY_HOST`. Dùng Render thì cứ kệ nó, job sẽ xanh và
-> không làm gì.
+## 6. CI/CD
 
----
+`render.yaml` dùng `autoDeployTrigger: checksPass`. Luồng deploy là:
 
-## 8. Đỡ phải chờ app ngủ dậy
+1. push `main`;
+2. GitHub Actions chạy Ruff, mypy, toàn bộ pytest, build và smoke-test image production;
+3. commit chỉ được Render deploy khi checks của commit đó xanh;
+4. readiness thất bại thì phiên bản mới không nhận traffic.
 
-**Không có cách nào sửa code để app tự không ngủ.** Render quyết định dựa trên *lưu lượng đi
-vào*; app tự gọi chính nó không tính. Tín hiệu phải đến từ bên ngoài.
+Không cần tạo Render Deploy Hook và không cần secret `RENDER_DEPLOY_HOOK_URL`. Workflow
+`.github/workflows/deploy.yml` chỉ còn phục vụ đường tự host qua SSH.
 
-Nhưng làm tự động được: cho một dịch vụ bên ngoài gõ cửa `/api/health` vài phút một lần trong
-khung giờ bạn hay đọc. App không bao giờ ngủ trong khung đó, mở ra là dùng ngay.
+Sau khi đổi `render.yaml`, mở Blueprint trên Render và bấm **Sync** để áp dụng thay đổi cấu hình.
 
-### 8.1 Vì sao chỉ đánh thức buổi tối, không phải 24/7
+## 7. Backup và khôi phục
 
-Render cho **750 giờ/tháng cho cả workspace**. Làm phép tính:
-
-| Cách | Giờ dùng/tháng (31 ngày) | Còn dư |
-|---|---|---|
-| Đánh thức 24/7 | 744 | **6 giờ** |
-| Đánh thức 17–24h | 217 | 533 giờ |
-
-Đánh thức 24/7 chỉ dư 6 giờ. Một lần deploy lại, một lần restart, hoặc bạn lỡ tạo thêm một
-service free nào khác — là vượt, và Render **treo toàn bộ service free tới đầu tháng sau**.
-Đánh thức theo giờ đọc vừa an toàn vừa đủ dùng.
-
-### 8.2 Cách làm — chọn một
-
-**Cách A — cron-job.org (khuyến nghị).** Miễn phí, không cần thẻ, giờ giấc chính xác.
-
-1. Đăng ký ở [cron-job.org](https://cron-job.org).
-2. **Create cronjob**, URL: `https://<ten-cua-ban>.onrender.com/api/health`
-3. Schedule: mỗi **10 phút**, và giới hạn khung giờ 17:00–23:59 (nhớ đặt timezone
-   `Asia/Ho_Chi_Minh` trong phần cài đặt tài khoản).
-
-**Cách B — GitHub Actions**, dùng [`keepalive.yml`](../.github/workflows/keepalive.yml) đã có
-sẵn trong repo. Không phải đăng ký thêm dịch vụ nào. Khai một secret:
-
-| Secret | Giá trị |
-|---|---|
-| `KEEPALIVE_URL` | `https://<ten-cua-ban>.onrender.com` (không có `/` ở cuối) |
-
-Chưa khai thì workflow tự bỏ qua, không báo đỏ.
-
-> **Hai nhược điểm của Cách B, cân nhắc trước khi chọn:**
->
-> - **Cron của GitHub hay trễ.** Đây là hạn mức chia sẻ miễn phí, lịch chạy có thể chậm 5–15
->   phút so với giờ hẹn. Ping đặt 10 phút mà trễ thành 20 phút thì app đã kịp ngủ. Nó vẫn đỡ
->   hơn không có gì, nhưng không chắc chắn bằng Cách A.
-> - **Repo private tốn phút Actions.** GitHub tính tròn lên 1 phút mỗi lần chạy dù chỉ tốn 5
->   giây. Ping 10 phút/lần trong 7 giờ mỗi ngày = **1.302 phút/tháng**, trong khi repo private
->   chỉ có 2.000 phút — cộng thêm CI là gần hết. Repo public thì không giới hạn, dùng thoải mái.
-
-### 8.3 Còn lại thì cold start nhanh cỡ nào
-
-Ngoài khung giờ đánh thức, app vẫn ngủ và lần mở đầu vẫn chờ. Phần chờ đó gồm Render khởi động
-container, Python nạp `lxml`/`trafilatura`, rồi `alembic upgrade head`.
-
-Việc nạp từ điển thì đã được xử lý: `seed_dictionary.py` đếm một câu rồi thoát ngay nếu từ điển
-đã có dữ liệu, thay vì thử insert 65 entry — tức 65 lượt đi về tới Neon qua mạng — ở **mỗi** lần
-ngủ dậy.
-
----
-
-## 9. Sao lưu
-
-Database này là toàn bộ thư viện, vị trí đọc, từ điển và ghi chú của bạn.
-
-**Neon có sẵn khôi phục theo thời điểm.** Gói free giữ lịch sử 24 giờ: vào project trên Neon →
-**Restore**, chọn mốc thời gian. Cứu được các sai sót vừa xảy ra (lỡ xoá nhầm, migration hỏng).
-
-**24 giờ là ngắn**, nên thỉnh thoảng nên tự kéo một bản về máy. Cần `pg_dump` (cài kèm Postgres
-client: `brew install libpq` trên macOS):
+Neon Free chỉ có cửa sổ restore 6 giờ. Tạo backup định kỳ từ máy có PostgreSQL client:
 
 ```bash
-pg_dump "postgresql://...chuoi-neon-cua-ban..." -Fc -f vietreader-$(date +%Y%m%d).dump
+pg_dump "<NEON_CONNECTION_STRING>" -Fc -f vietreader-YYYYMMDD.dump
+pg_restore -l vietreader-YYYYMMDD.dump
 ```
 
-Khôi phục từ bản đó:
+Khôi phục là thao tác ghi đè có rủi ro; luôn tạo branch/database đích riêng để kiểm tra bản dump
+trước khi phục hồi vào production.
 
-```bash
-pg_restore -d "postgresql://...chuoi-neon-cua-ban..." --clean --if-exists vietreader-20260814.dump
-```
+## 8. Sự cố thường gặp
 
-Kiểm tra bản vừa kéo trước khi yên tâm:
+- **App mở đầu ngày chậm:** hành vi bình thường của Render Free sau khi ngủ. Nâng lên Starter nếu
+  cần phản hồi ổn định; không coi keepalive miễn phí là SLA production.
+- **`/api/ready` trả 503:** kiểm tra Neon còn hoạt động, URL/SSL đúng và xem log migration.
+- **Service không khởi động, báo cần PostgreSQL:** chưa nhập hoặc nhập sai
+  `VIETREADER_DATABASE_URL`; đây là fail-safe chủ ý.
+- **Service không khởi động, báo thiếu auth:** nhập `VIETREADER_AUTH_PASSWORD` và giữ username.
+- **Migration lỗi:** không bật lại tự tạo schema. Giữ log, kiểm tra revision bằng `alembic current`
+  trên môi trường có quyền kết nối Neon.
+- **CI xanh nhưng chưa deploy:** Sync Blueprint, kiểm tra repo/nhánh `main`, và xác nhận
+  `autoDeployTrigger` là `checksPass`.
+- **Link truyện không đọc được:** site nguồn có thể chặn bot. UI sẽ hướng dẫn dán nội dung; gửi
+  URL cụ thể để bổ sung adapter, không tắt TLS hay cho phép private network trên production.
 
-```bash
-pg_restore -l vietreader-20260814.dump | grep -c TABLE     # phải ra một con số > 0
-```
+## 9. Cấu hình tối thiểu nên chọn
 
----
+| Mức sử dụng | Render | Neon | Ghi chú |
+|---|---|---|---|
+| Cá nhân/thử nghiệm | Free | Free | Có cold start, không có SLA |
+| Dùng hằng ngày ổn định | Starter hoặc cao hơn | Free/Launch theo tải | Không ngủ phía web |
+| Dữ liệu quan trọng | Paid phù hợp tải | Paid + backup ngoài | Theo dõi usage và diễn tập restore |
 
-## 10. Khắc phục sự cố
-
-**Mở app lần đầu trong ngày phải chờ ~1 phút** — đúng như thiết kế của gói free, app ngủ sau 15
-phút. Không phải lỗi. Xem §0.
-
-**`ModuleNotFoundError: No module named 'psycopg2'`** — không nên gặp vì code đã tự chuẩn hoá
-URL. Nếu vẫn gặp, kiểm tra `VIETREADER_DATABASE_URL` có bị dán nhầm thành dạng lạ không
-(`postgresql+psycopg2://` chẳng hạn). Dạng đúng là dán nguyên chuỗi Neon cho.
-
-**Dữ liệu biến mất sau mỗi lần deploy** — app đang chạy trên SQLite. Xem dòng `==> database:`
-đầu log, rồi sửa `VIETREADER_DATABASE_URL` theo §4.
-
-**Log có lỗi kết nối ở request đầu tiên sau lúc rảnh** — Neon co compute về 0 sau 5 phút. App
-đã bật `pool_pre_ping` để xử lý; còn gặp thì báo tôi, có thể phải tăng timeout.
-
-**Build fail vì hết RAM (`Killed`, `gcc: fatal error`)** — `lxml`/`selectolax` compile nặng. Nếu
-builder của Render không kham nổi, báo tôi để chuyển sang cài từ wheel dựng sẵn.
-
-**Từ điển rỗng** — thiếu `VIETREADER_SEED_ON_START=1`, hoặc log seed báo lỗi. Xem log tìm dòng
-`==> seed từ điển mẫu`.
-
-**CI xanh nhưng Render không deploy** — kiểm tra `autoDeployTrigger` trong `render.yaml` (§7),
-và trên Render xem repo đã nối đúng nhánh `main` chưa.
-
-**Neon báo hết dung lượng** — 0,5 GB đầy. Chủ yếu do bảng `chapter_cache` (lưu văn bản chương)
-và `llm_cache`. Xoá bớt chương cũ trong `/library` là giải phóng được.
-
----
-
-## 11. Vì sao là Postgres chứ không SQLite
-
-Không phải vì SQLite yếu — với một người đọc thì SQLite thừa sức, và bản tự host ở
-[DEPLOY.md](DEPLOY.md) vẫn dùng SQLite.
-
-Lý do là **Render free có hệ thống file tạm**: mọi file app ghi ra đều mất mỗi lần service
-redeploy, restart, hoặc ngủ dậy. Đĩa bền là tính năng trả phí. SQLite là một file, nên trên nền
-tảng đó nó không sống được.
-
-Đổi lại, việc chuyển sang Postgres hoá ra rất nhỏ, vì dự án vốn đã viết bằng SQLAlchemy/Alembic
-thuần, không có SQL riêng cho dialect nào:
-
-- Mọi giá trị mặc định của cột đều tính ở phía Python (`default=`), không dùng `server_default=`
-  với SQL riêng của SQLite.
-- `sa.JSON()` chạy trên cả hai.
-- `batch_alter_table` trong migration `47f8` là để lách hạn chế của SQLite; trên Postgres
-  Alembic tự chuyển thành `ALTER TABLE` thường.
-
-Thay đổi thực tế chỉ gồm: tách `connect_args={"check_same_thread": False}` (chỉ SQLite hiểu)
-sang nhánh riêng, thêm driver `psycopg`, bật `pool_pre_ping` cho Neon, và chuẩn hoá URL. Toàn bộ
-model, repository, route, template giữ nguyên; 185 test vẫn chạy trên SQLite như cũ.
-
-Nghĩa là bạn **đổi qua lại được**: cùng mã nguồn này chạy trên Render+Postgres hay trên máy ảo
-với SQLite, chỉ khác một biến môi trường.
+Cùng code vẫn chạy local bằng SQLite vì `AUTO_CREATE_SCHEMA` mặc định bật và
+`REQUIRE_POSTGRES` mặc định tắt. Các cờ fail-safe chỉ được Blueprint bật cho production.

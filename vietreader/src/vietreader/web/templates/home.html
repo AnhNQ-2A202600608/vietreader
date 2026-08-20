@@ -25,33 +25,63 @@
 </a>
 {% endif %}
 
-<h2>Đọc chương mới</h2>
-
-<form class="panel" hx-post="/read" hx-target="#reader-container" hx-swap="innerHTML"
-      hx-indicator="#loading">
-  <div class="field">
-    <label for="url">URL chương</label>
-    <input type="url" id="url" name="url" placeholder="https://...">
+<section class="open-chapter" aria-labelledby="open-chapter-title">
+  <div class="section-intro">
+    <div>
+      <p class="eyebrow">Chương mới</p>
+      <h2 id="open-chapter-title">Bạn muốn đọc từ đâu?</h2>
+    </div>
+    <p>Dán liên kết là nhanh nhất. Nếu website chặn, bạn vẫn có thể dán phần chữ bên dưới.</p>
   </div>
 
-  <p class="or-divider">hoặc</p>
+  <form class="panel source-form" data-url-form data-normalize-urls hx-post="/read"
+        hx-target="#reader-container" hx-swap="innerHTML" hx-indicator="#url-loading"
+        hx-disabled-elt="find button">
+    <div class="source-icon" aria-hidden="true">↗</div>
+    <div class="source-form-body">
+      <label for="url">Liên kết chương</label>
+      <p class="field-hint">Có thể dán cả <code>truyen.example/chuong-12</code>, không cần tự thêm https://.</p>
+      <div class="url-entry-row">
+        <input type="text" inputmode="url" id="url" name="url"
+               autocomplete="url" autocapitalize="none" spellcheck="false"
+               placeholder="Dán liên kết chương vào đây" required>
+        <button type="submit" class="primary">Mở chương</button>
+      </div>
+      <div id="url-loading" class="load-state htmx-indicator" role="status" aria-live="polite">
+        <span class="spinner-dot"></span>
+        Đang mở trang và lọc nội dung… Việc này có thể mất vài giây.
+      </div>
+    </div>
+  </form>
 
-  <div class="field">
-    <label for="raw_text">Dán nội dung chương</label>
-    <textarea id="raw_text" name="raw_text" placeholder="Dán nội dung ở đây..."></textarea>
-  </div>
-  <div class="field">
-    <label for="title">Tiêu đề (tuỳ chọn)</label>
-    <input type="text" id="title" name="title">
-  </div>
+  <details class="paste-fallback" id="paste-fallback">
+    <summary>
+      <span><strong>Dán nội dung chương</strong><small>Dùng khi link bị chặn hoặc định dạng sai</small></span>
+      <span aria-hidden="true">＋</span>
+    </summary>
+    <form class="paste-form" hx-post="/read" hx-target="#reader-container"
+          hx-swap="innerHTML" hx-indicator="#paste-loading" hx-disabled-elt="find button">
+      <div class="field">
+        <label for="raw_text">Nội dung chương</label>
+        <textarea id="raw_text" name="raw_text" rows="12"
+          placeholder="Dán phần chữ của chương ở đây…" required></textarea>
+        <p class="field-hint">VietReader tự nhận diện xuống dòng và tách lại đoạn văn.</p>
+      </div>
+      <div class="field">
+        <label for="title">Tên chương <span class="optional">không bắt buộc</span></label>
+        <input type="text" id="title" name="title" placeholder="Ví dụ: Chương 12 — Gặp lại">
+      </div>
+      <div class="toolbar">
+        <button type="submit" class="primary">Định dạng và đọc</button>
+        <span id="paste-loading" class="load-state htmx-indicator" role="status">
+          <span class="spinner-dot"></span>Đang xử lý nội dung…
+        </span>
+      </div>
+    </form>
+  </details>
+</section>
 
-  <div class="toolbar">
-    <button type="submit" class="primary">Đọc</button>
-    <span id="loading" class="htmx-indicator">Đang xử lý…</span>
-  </div>
-</form>
-
-<div id="reader-container"></div>
+<div id="reader-container" aria-live="polite"></div>
 
 {% if recent %}
 <div class="section-title">

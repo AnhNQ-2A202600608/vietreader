@@ -12,21 +12,19 @@ WORKDIR /app
 # Cài bằng một package rỗng để pip đọc được danh sách dependency mà không cần src thật.
 #
 # Đừng gộp bước này với bước 2: nếu `COPY src` nằm trước `pip install`, mọi thay đổi mã nguồn
-# đều làm hỏng cache và bắt compile lại lxml/selectolax — 15-25 phút mỗi lần deploy trên ARM.
+# đều làm hỏng cache và bắt cài lại lxml/selectolax.
 # Tách ra thì deploy thường chỉ mất ~30 giây.
 #
-# build-essential chỉ cần lúc build (ARM không có wheel dựng sẵn), gỡ đi sau để ảnh nhẹ.
-# Riêng `sqlite3` (CLI) cài SAU khi purge và giữ luôn: scripts/backup_db.sh gọi `sqlite3 .backup`,
-# mà python:*-slim chỉ có thư viện libsqlite3 chứ không có lệnh sqlite3.
+# Các dependency bị pin vào phiên bản có wheel CPython 3.12/Linux. Không cài cả toolchain C++
+# 336 MB chỉ để rồi gỡ nó trong cùng layer. Nếu một dependency tương lai không còn wheel, build
+# nên fail rõ ràng ở đây để ta xử lý có chủ ý. `sqlite3` CLI vẫn được giữ cho backup self-host.
 COPY pyproject.toml README.md ./
 RUN mkdir -p src/vietreader && touch src/vietreader/__init__.py \
  && apt-get update \
- && apt-get install -y --no-install-recommends build-essential \
- && pip install --upgrade pip \
- && pip install . \
- && pip uninstall -y vietreader \
- && apt-get purge -y --auto-remove build-essential \
  && apt-get install -y --no-install-recommends sqlite3 \
+ && pip install --upgrade pip \
+ && pip install --only-binary=:all: . \
+ && pip uninstall -y vietreader \
  && rm -rf /var/lib/apt/lists/* src
 
 # Bước 2 — mã nguồn chạy THẲNG từ cây nguồn qua PYTHONPATH, không `pip install`.
@@ -45,6 +43,9 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 COPY config ./config
 COPY scripts ./scripts
+# Phòng checkout từ Windows đưa CRLF vào shebang. `.gitattributes` giữ LF trong Git; bước này
+# là lớp an toàn cuối để image Linux luôn chạy được kể cả build từ một working tree cũ.
+RUN sed -i 's/\r$//' scripts/*.sh && chmod +x scripts/*.sh
 
 # Dữ liệu nằm ở volume riêng để nâng cấp ảnh không mất thư viện, từ điển, ghi chú.
 RUN mkdir -p /data && useradd --create-home --uid 10001 vietreader && chown -R vietreader /data /app

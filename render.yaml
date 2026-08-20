@@ -14,19 +14,23 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: ./
 
-    healthCheckPath: /api/health
+    # Readiness includes SELECT 1, so a deploy with a broken Neon URL/schema never receives traffic.
+    healthCheckPath: /api/ready
+    maxShutdownDelaySeconds: 60
 
-    # Tự động deploy ngay khi push vào main
-    autoDeploy: true
-    autoDeployTrigger: commit
+    # Render chỉ deploy commit sau khi các check của commit đó xanh.
+    autoDeployTrigger: checksPass
 
     envVars:
       # sync: false = Render KHÔNG lấy giá trị từ file này mà bắt bạn nhập trên dashboard.
-      # Với DATABASE_URL đó là chủ ý: nó là bí mật, và quan trọng hơn — nếu để trống thì app
-      # sẽ âm thầm quay về SQLite trên đĩa tạm của Render và mất sạch dữ liệu sau mỗi lần
-      # khởi động lại. Bắt buộc phải điền chuỗi Postgres của Neon vào đây.
+      # Đây là bí mật. REQUIRE_POSTGRES bên dưới khiến service dừng ngay nếu thiếu hoặc nhầm URL,
+      # thay vì rơi về SQLite trên filesystem tạm của Render.
       - key: VIETREADER_DATABASE_URL
         sync: false
+      - key: VIETREADER_REQUIRE_POSTGRES
+        value: "1"
+      - key: VIETREADER_AUTO_CREATE_SCHEMA
+        value: "0"
 
       # Để trống nếu không muốn mở tính năng ASK ra Internet — xem DEPLOY_RENDER.md §6.
       - key: VIETREADER_LLM_API_KEY
@@ -35,7 +39,14 @@ services:
       - key: VIETREADER_READER_NAME
         value: Ngân Giang
 
-      # Render free không cho chạy lệnh một lần và không có SSH, nên nạp từ điển mẫu lúc
-      # khởi động là cách duy nhất. seed_dictionary.py bỏ qua entry đã có nên chạy lại vô hại.
+      # Render có URL công khai nên không được khởi động nếu thiếu credentials.
+      - key: VIETREADER_REQUIRE_AUTH
+        value: "1"
+      - key: VIETREADER_AUTH_USERNAME
+        value: vietreader
+      - key: VIETREADER_AUTH_PASSWORD
+        sync: false
+
+      # seed_dictionary.py bỏ qua entry đã có nên chạy lại an toàn.
       - key: VIETREADER_SEED_ON_START
         value: "1"

@@ -1,18 +1,31 @@
-<div class="reader-root" style="margin-top: var(--s4);">
-  <div class="banner" style="border-left: 4px solid var(--warn-fg); background: var(--warn-bg); color: var(--fg); padding: var(--s4); border-radius: var(--r-md);">
-    <div style="display: flex; align-items: flex-start; gap: var(--s3);">
-      {% with size = "sm", mood = "sleepy" %}{% include "_mascot.html" %}{% endwith %}
-      <div>
-        <strong style="color: var(--warn-fg); font-size: var(--t-md); display: block; margin-bottom: var(--s1);">
-          Chưa tải được nội dung từ liên kết này
-        </strong>
-        <p style="margin: 0 0 var(--s2); font-size: var(--t-sm);">
-          {{ error }}
-        </p>
-        <p class="muted text-sm" style="margin: 0;">
-          💡 <em>Mẹo: Một số trang web chặn bot/máy chủ tự động lấy dữ liệu. Bạn có thể mở trang truyện, sao chép (Ctrl+C / Cmd+C) toàn bộ chữ của chương rồi dán vào ô <strong>"Dán nội dung chương"</strong> ở trên để đọc ngay nhé!</em>
-        </p>
-      </div>
-    </div>
+<section class="reader-error" role="alert">
+  <div class="error-illustration">
+    {% with size = "md", mood = "sleepy" %}{% include "_mascot.html" %}{% endwith %}
   </div>
-</div>
+  <div class="error-body">
+    <p class="eyebrow">Không tải được</p>
+    <h2>{{ error_title }}</h2>
+    <p class="error-message">{{ error_message }}</p>
+    <p class="error-hint">{{ error_hint }}</p>
+
+    <div class="error-actions">
+      {% if can_retry and url %}
+      <form hx-post="/read" hx-target="#reader-container" hx-swap="innerHTML"
+            hx-indicator="#retry-loading" hx-disabled-elt="find button">
+        <input type="hidden" name="url" value="{{ url }}">
+        <button type="submit">Thử lại</button>
+        <span id="retry-loading" class="htmx-indicator">Đang thử lại…</span>
+      </form>
+      {% endif %}
+      <button type="button" class="primary" data-open-paste>Dán nội dung thay thế</button>
+      {% if url %}<a class="btn ghost" href="{{ url }}" target="_blank" rel="noopener noreferrer">Mở trang nguồn ↗</a>{% endif %}
+    </div>
+
+    {% if error_detail %}
+    <details class="error-detail">
+      <summary>Chi tiết kỹ thuật</summary>
+      <code>{{ error_detail }}</code>
+    </details>
+    {% endif %}
+  </div>
+</section>

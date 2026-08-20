@@ -26,3 +26,11 @@ jobs:
       - name: Test
         run: python -m pytest -q --cov=vietreader --cov-report=term-missing
         working-directory: vietreader
+      - name: Build production image
+        run: docker build --tag vietreader:ci .
+        working-directory: vietreader
+      - name: Smoke-test production runtime
+        run: >-
+          docker run --rm --entrypoint python vietreader:ci -c
+          "import psycopg, selectolax, trafilatura, vietreader;
+          print('production runtime imports: OK')"

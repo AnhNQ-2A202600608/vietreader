@@ -1,7 +1,7 @@
 # VietReader — Danh sách công việc & Trạng thái dự án (TODO & Roadmap)
 
-> Cập nhật lần cuối: **18/08/2026**  
-> Trạng thái hiện tại: **Production Ready (Đang chạy Live trên Render + Neon Postgres)**  
+> Cập nhật lần cuối: **20/08/2026**
+> Trạng thái hiện tại: **Production-hardened (Render + Neon; bắt buộc auth khi deploy theo blueprint)**
 > Domain: **https://vietreader.onrender.com**
 
 ---
@@ -13,13 +13,19 @@
   - Cấu hình file `render.yaml` tự động build `Dockerfile` từ nhánh `main`.
   - Tự động chuyển đổi giữa SQLite (Local) và PostgreSQL (Neon trên Production) với cơ chế `pool_pre_ping`.
   - Tự động chạy Migration và nạp từ điển mẫu khi khởi động container (`VIETREADER_SEED_ON_START=1`).
-- [x] **Giữ máy chủ hoạt động 24/7 (Keepalive & Anti-sleep)**:
-  - Tích hợp **UptimeRobot** ping `/api/health` mỗi 5 phút (hỗ trợ cả phương thức `GET` và `HEAD`, phản hồi 200 OK).
-  - Tích hợp workflow dự phòng **GitHub Actions** (`.github/workflows/keepalive.yml`).
-  - Đảm bảo app không bao giờ bị cold-start (không phải chờ 50s mỗi khi mở lại).
+- [x] **Monitor và keepalive tuỳ chọn cho gói Free**:
+  - `/api/health` hỗ trợ GET/HEAD cho monitor ngoài; `/api/ready` kiểm tra cả kết nối Neon.
+  - Workflow dự phòng **GitHub Actions** (`.github/workflows/keepalive.yml`) chỉ chạy khi có secret.
+  - Keepalive không phải SLA; production cần ổn định nên dùng Render Starter hoặc cao hơn.
 - [x] **CI/CD Tự động hóa**:
-  - Tự động kiểm tra chất lượng mã nguồn (Ruff linter + Mypy typecheck + 185 bài Test).
-  - Kích hoạt chế độ `autoDeploy: true` và `autoDeployTrigger: commit`: Mọi thay đổi push vào `main` đều tự động cập nhật lên máy chủ ngay lập tức.
+  - Tự động kiểm tra chất lượng mã nguồn (Ruff linter + Mypy typecheck + test/eval).
+  - Render dùng native `autoDeployTrigger: checksPass`; không cần Deploy Hook hoặc secret riêng.
+- [x] **Hardening ứng dụng công khai**:
+  - HTTP Basic Auth bắt buộc trong blueprint Render; health/readiness vẫn công khai cho monitor.
+  - Chặn request thay đổi trạng thái từ origin khác; fetcher chặn SSRF tới localhost/private IP.
+  - Bật xác minh TLS và kiểm tra lại mọi đích redirect trước khi tải.
+  - Readiness kiểm tra Neon bằng `SELECT 1`; production fail-fast nếu thiếu PostgreSQL,
+    migration Alembic là nguồn schema duy nhất và database URL được che khỏi log.
 
 ---
 

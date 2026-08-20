@@ -8,6 +8,7 @@ from vietreader.core.series import (
     chapter_display_title,
     chapter_number,
     derive_series_key,
+    infer_chapter_title,
     series_title_from_key,
 )
 
@@ -100,6 +101,23 @@ def test_series_title_defaults_to_a_readable_slug() -> None:
     assert series_title_from_key("https://truyenfull.vn/dau-pha-thuong-khung") == (
         "Dau Pha Thuong Khung"
     )
+
+
+def test_infer_title_from_the_opening_paragraph_for_pasted_chapters() -> None:
+    paragraphs = [
+        "Chương 127 — Người trở về",
+        "Mưa rơi rất lâu trên mái ngói cũ, phủ kín con đường dẫn vào thành.",
+    ]
+    assert infer_chapter_title("", None, paragraphs) == "Chương 127 — Người trở về"
+
+
+def test_infer_short_unnumbered_heading_only_when_followed_by_long_prose() -> None:
+    paragraphs = [
+        "Gặp lại",
+        "Mưa rơi rất lâu trên mái ngói cũ, phủ kín con đường dẫn vào thành và che mờ bóng người.",
+    ]
+    assert infer_chapter_title(None, None, paragraphs) == "Gặp lại"
+    assert infer_chapter_title(None, None, ["Ta là ai?", paragraphs[1]]) == ""
 
 
 @pytest.mark.parametrize(

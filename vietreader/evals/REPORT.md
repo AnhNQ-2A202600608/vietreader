@@ -27,7 +27,7 @@ Số golden case: 40
 | case_008 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_009 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_010 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
-| case_011 | ✓ | ✓ | ✓ |  | 0 | 16.00 |
+| case_011 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_012 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_013 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_014 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
@@ -42,7 +42,7 @@ Số golden case: 40
 | case_023 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_024 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_025 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
-| case_026 | ✓ | ✓ | ✓ | ✓ | 1 | 15.00 |
+| case_026 | ✓ | ✓ | ✓ | ✓ | 1 | 0.00 |
 | case_027 | ✓ | ✓ | ✓ | ✓ | 1 | 0.00 |
 | case_028 | ✓ | ✓ | ✓ | ✓ | 1 | 0.00 |
 | case_029 | ✓ | ✓ | ✓ | ✓ | 1 | 0.00 |
@@ -56,6 +56,6 @@ Số golden case: 40
 | case_037 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_038 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
 | case_039 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
-| case_040 | ✓ | ✓ | ✓ |  | 0 | 0.00 |
+| case_040 | ✓ | ✓ | ✓ |  | 0 | 15.00 |
 
 **Lưu ý:** chạy với `FakeProvider` (mode="correct", luôn chọn candidate index 0). `ambiguity_accuracy` ở chế độ này đo hành vi mặc định của FakeProvider, KHÔNG phải chất lượng LLM thật — xem DECISIONS.md mục Phase 8. Chạy `--live` với API key thật để có tín hiệu ý nghĩa cho metric này.

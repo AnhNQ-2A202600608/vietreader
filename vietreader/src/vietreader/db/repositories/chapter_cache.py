@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from vietreader.core.series import chapter_display_title, chapter_number
+from vietreader.core.series import chapter_number, infer_chapter_title
 from vietreader.db.models import ChapterCacheRow
 
 
@@ -53,9 +53,9 @@ def _row_to_entry(row: ChapterCacheRow) -> ChapterCacheEntry:
         id=row.id,
         source_key=row.source_key,
         url=row.url,
-        # Cũng áp ở đây, không chỉ lúc trích xuất, để các chương đã lưu từ trước với tên bộ
-        # truyện làm tiêu đề cũng phân biệt được ngay mà không cần xử lý lại.
-        title=chapter_display_title(row.title, row.url),
+        # Apply on reads too so legacy rows with an empty/stale title immediately recover from
+        # their opening paragraph or URL without requiring a production DB backfill first.
+        title=infer_chapter_title(row.title, row.url, row.raw_text.split("\n\n")),
         raw_hash=row.raw_hash,
         raw_text=row.raw_text,
         output_text=row.output_text,
@@ -65,6 +65,7 @@ def _row_to_entry(row: ChapterCacheRow) -> ChapterCacheEntry:
         model=row.model,
         next_url=row.next_url,
         prev_url=row.prev_url,
+        series_id=row.series_id,
         created_at=row.created_at,
         last_read_at=row.last_read_at,
     )

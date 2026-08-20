@@ -9,9 +9,11 @@ from vietreader.core.dictionary import DictionaryEntryError
 from vietreader.core.models import Policy
 from vietreader.db.repositories.chapter_cache import ChapterCacheRepo
 from vietreader.db.repositories.dictionary import DictionaryRepo
+from vietreader.db.repositories.dictionary_version import DictionaryVersionRepo
 from vietreader.db.repositories.llm_cache import LLMCacheRepo
 from vietreader.db.repositories.position import PositionRepo
 from vietreader.db.repositories.run_log import RunLogRepo
+from vietreader.db.repositories.series import SeriesRepo
 
 
 def test_dictionary_repo_create_get_update_delete(db_session: Session) -> None:
@@ -85,6 +87,66 @@ def test_chapter_cache_repo_put_and_get(db_session: Session) -> None:
     db_session.commit()
     assert repo.get("key-1") is not None
     assert repo.get_by_id(entry.id) is not None
+
+
+def test_chapter_cache_roundtrip_preserves_series_id(db_session: Session) -> None:
+    series = SeriesRepo(db_session).get_or_create("https://example.com/story")
+    repo = ChapterCacheRepo(db_session)
+    entry = repo.put(
+        source_key="key-series",
+        url="https://example.com/story/chuong-1",
+        title="Chương 1",
+        raw_hash="series-hash",
+        raw_text="raw",
+        output_text="output",
+        changelog_json="[]",
+        dict_version_hash="dv1",
+        prompt_version="v1",
+        model="m1",
+    )
+    repo.set_series(entry.id, series.id)
+    db_session.commit()
+
+    fetched = repo.get_by_id(entry.id)
+    assert fetched is not None
+    assert fetched.series_id == series.id
+    assert repo.list_recent()[0].series_id == series.id
+
+
+def test_legacy_blank_cache_title_is_inferred_on_read(db_session: Session) -> None:
+    repo = ChapterCacheRepo(db_session)
+    entry = repo.put(
+        source_key="legacy-blank-title",
+        url=None,
+        title="",
+        raw_hash="legacy-title-hash",
+        raw_text=(
+            "Chương 88 — Cửa đá mở ra\n\n"
+            "Ánh sáng từ bên trong khe cửa tràn ra khắp hành lang tối."
+        ),
+        output_text=(
+            "Chương 88 — Cửa đá mở ra\n\n"
+            "Ánh sáng từ bên trong khe cửa tràn ra khắp hành lang tối."
+        ),
+        changelog_json="[]",
+        dict_version_hash="dv1",
+        prompt_version="v1",
+        model="m1",
+    )
+    db_session.commit()
+
+    fetched = repo.get_by_id(entry.id)
+    assert fetched is not None
+    assert fetched.title == "Chương 88 — Cửa đá mở ra"
+
+
+def test_dictionary_version_repo_is_idempotent(db_session: Session) -> None:
+    repo = DictionaryVersionRepo(db_session)
+    first = repo.ensure("hash-1", 3)
+    second = repo.ensure("hash-1", 3)
+    db_session.commit()
+
+    assert first.id == second.id
 
 
 def test_position_repo_upsert(db_session: Session) -> None:

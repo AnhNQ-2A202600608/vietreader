@@ -12,14 +12,17 @@ from vietreader.llm.provider import DisambiguationItem
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 
-_PROMPT_TEMPLATE = (
-    resources.files("vietreader.llm.prompts")
-    .joinpath("disambiguate.v1.txt")
-    .read_text(encoding="utf-8")
-)
+def _load_prompt_template(prompt_version: str) -> str:
+    path = resources.files("vietreader.llm.prompts").joinpath(
+        f"disambiguate.{prompt_version}.txt"
+    )
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise ValueError(f"unsupported LLM prompt version: {prompt_version!r}") from exc
 
 
-def _build_prompt(items: list[DisambiguationItem]) -> str:
+def _build_prompt(items: list[DisambiguationItem], prompt_version: str = "v1") -> str:
     items_json = json.dumps(
         [
             {
@@ -33,7 +36,7 @@ def _build_prompt(items: list[DisambiguationItem]) -> str:
         ],
         ensure_ascii=False,
     )
-    return _PROMPT_TEMPLATE.replace("{{ITEMS_JSON}}", items_json)
+    return _load_prompt_template(prompt_version).replace("{{ITEMS_JSON}}", items_json)
 
 
 class AnthropicProvider:
@@ -48,11 +51,13 @@ class AnthropicProvider:
         api_key: str,
         model: str,
         *,
+        prompt_version: str = "v1",
         timeout: float = 30.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self._api_key = api_key
         self._model = model
+        self._prompt_version = prompt_version
         self._timeout = timeout
         self._transport = transport
 
@@ -63,7 +68,7 @@ class AnthropicProvider:
         temperature: float,
         max_tokens: int,
     ) -> str:
-        prompt = _build_prompt(items)
+        prompt = _build_prompt(items, self._prompt_version)
         payload = {
             "model": self._model,
             "max_tokens": max_tokens,

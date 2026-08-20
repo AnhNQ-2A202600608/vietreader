@@ -23,7 +23,8 @@ _MAX_TITLE_CHARS = 150
 
 # Các phần tử hay chứa tên chương, ngoài h1/h2/h3.
 _TITLE_LIKE_SELECTOR = (
-    '[class*="chapter"], [class*="chuong"], [class*="book-title"], [class*="title"]'
+    '[class*="chapter"], [class*="chuong"], [class*="book-title"], [class*="title"], '
+    '[itemprop="headline"]'
 )
 
 
@@ -32,14 +33,14 @@ def _candidates(tree: HTMLParser) -> list[str]:
 
     title_node = tree.css_first("title")
     if title_node:
-        raw = title_node.text(strip=True)
+        raw = title_node.text(deep=True, separator=" ", strip=True)
         found.append(raw)
         # "Tên truyện - Chương 3 tai ách" -> tách ra để lấy riêng vế chương.
         found.extend(part.strip() for part in _TITLE_SEPARATORS.split(raw))
 
     for selector in ("h1", "h2", "h3", _TITLE_LIKE_SELECTOR):
         for node in tree.css(selector):
-            found.append(node.text(strip=True))
+            found.append(node.text(deep=True, separator=" ", strip=True))
 
     return [text for text in found if text and len(text) <= _MAX_TITLE_CHARS]
 

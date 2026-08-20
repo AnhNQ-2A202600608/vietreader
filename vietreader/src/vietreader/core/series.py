@@ -22,6 +22,12 @@ _CHAPTER_NUMBER = re.compile(
     re.IGNORECASE,
 )
 
+_TITLE_LINE = re.compile(
+    r"^(?:chương|chapter|chap|hồi|quyển|tập|phần|mở đầu|lời tựa|ngoại truyện)\b"
+    r"|^đệ\s+.{1,30}\s+chương\b|^第.{1,16}[章节回卷]",
+    re.IGNORECASE,
+)
+
 
 def _path_segments(url: str) -> list[str]:
     return [segment for segment in urlsplit(url).path.split("/") if segment]
@@ -99,6 +105,46 @@ def chapter_display_title(title: str, url: str | None) -> str:
 
     words = _slug_words_after_number(url)
     return f"Chương {index} — {words.capitalize()}" if words else f"Chương {index}"
+
+
+def infer_chapter_title(
+    title: str | None, url: str | None, paragraphs: list[str] | tuple[str, ...]
+) -> str:
+    """Return a useful title even when an extractor/cache row left it blank.
+
+    Pasted chapters commonly contain their title as the first line while the optional title
+    input is left empty.  Older generic extractions can have the same shape when a site's title
+    lives outside the small set of known selectors.  Prefer explicit metadata, then a strongly
+    title-like opening paragraph, and finally the chapter number encoded in the URL.
+    """
+
+    def compact(value: str | None) -> str:
+        return re.sub(r"\s+", " ", (value or "")).strip().lstrip("# ").strip()
+
+    explicit = compact(title)
+    if explicit:
+        return chapter_display_title(explicit, url)
+
+    opening = [compact(paragraph) for paragraph in paragraphs[:3] if compact(paragraph)]
+    for candidate in opening:
+        if len(candidate) <= 160 and (
+            _TITLE_LINE.search(candidate) or chapter_number(candidate) is not None
+        ):
+            return candidate
+
+    # Also accept a short heading followed by clearly longer prose. This recovers headings such
+    # as "Gặp lại" without treating ordinary first sentences or dialogue as titles.
+    if len(opening) >= 2:
+        first, second = opening[0], opening[1]
+        sentence_ending = (".", "!", "?", "…", ";", ":", "\"", "”")
+        if (
+            2 <= len(first) <= 80
+            and len(second) >= max(80, len(first) * 2)
+            and not first.endswith(sentence_ending)
+        ):
+            return first
+
+    return chapter_display_title("", url)
 
 
 def chapter_number(*sources: str | None) -> float | None:

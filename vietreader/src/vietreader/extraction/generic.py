@@ -7,7 +7,7 @@ from selectolax.parser import HTMLParser
 
 from vietreader.core.models import Chapter
 from vietreader.core.normalize import normalize_text
-from vietreader.core.series import chapter_display_title
+from vietreader.core.series import infer_chapter_title
 from vietreader.extraction.base import ExtractionError
 from vietreader.extraction.chapter_title import find_chapter_title
 from vietreader.extraction.navigation import find_navigation
@@ -53,8 +53,28 @@ STRIP_SELECTORS = (
 
 
 def _extract_via_heuristics(tree: HTMLParser) -> tuple[str, list[str]]:
-    title_node = tree.css_first("h1, h2, .chapter-title, .title")
-    title = normalize_text(title_node.text(strip=True)) if title_node else ""
+    title = ""
+    for selector in (
+        '[itemprop="headline"]',
+        "#chapter-title",
+        ".chapter-title",
+        ".chapter-name",
+        "h1",
+        "h2",
+        "h3",
+        'meta[property="og:title"]',
+        'meta[name="twitter:title"]',
+        "title",
+    ):
+        title_node = tree.css_first(selector)
+        if title_node is None:
+            continue
+        value = title_node.attributes.get("content") or title_node.text(
+            deep=True, separator=" ", strip=True
+        )
+        title = normalize_text(value)
+        if title:
+            break
 
     for selector in COMMON_NOVEL_SELECTORS:
         content_node = tree.css_first(selector)
@@ -67,9 +87,9 @@ def _extract_via_heuristics(tree: HTMLParser) -> tuple[str, list[str]]:
             p_nodes = content_node.css("p")
             if p_nodes:
                 paragraphs = [
-                    normalize_text(p.text(strip=True))
+                    normalize_text(p.text(deep=True, separator=" ", strip=True))
                     for p in p_nodes
-                    if normalize_text(p.text(strip=True))
+                    if normalize_text(p.text(deep=True, separator=" ", strip=True))
                 ]
             else:
                 raw_text = content_node.text(deep=True, separator="\n", strip=True)
@@ -117,9 +137,9 @@ class GenericExtractor:
                         bad.decompose()
                 p_nodes = body.css("p")
                 paragraphs = [
-                    normalize_text(p.text(strip=True))
+                    normalize_text(p.text(deep=True, separator=" ", strip=True))
                     for p in p_nodes
-                    if len(p.text(strip=True)) > 20
+                    if len(p.text(deep=True, separator=" ", strip=True)) > 20
                 ]
 
         if not paragraphs:
@@ -129,8 +149,8 @@ class GenericExtractor:
             )
 
         # Tên chương lấy từ trang hoặc suy từ slug
-        detected_title = find_chapter_title(html, source_url) or chapter_display_title(
-            title, source_url
+        detected_title = find_chapter_title(html, source_url) or infer_chapter_title(
+            title, source_url, paragraphs
         )
 
         return Chapter(

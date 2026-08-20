@@ -73,6 +73,54 @@
     dialog.hidden = !show;
   }
 
+  // -------------------------------------------------------- chapter source
+
+  function normalizeUrlInput(input) {
+    if (!input) return;
+    var value = input.value
+      .replace(/[\u200B\u200C\u200D\u2060\uFEFF]/g, "")
+      .trim();
+    var markdown = value.match(/^\[[^\]]+\]\((https?:\/\/[^\s)]+)\)$/i);
+    if (markdown) value = markdown[1];
+    else if (value.charAt(0) === "<" && value.charAt(value.length - 1) === ">") {
+      value = value.slice(1, -1).trim();
+    }
+    if (value.indexOf("//") === 0) value = "https:" + value;
+    else if (value && value.indexOf("://") === -1) {
+      var host = value.split("/", 1)[0];
+      if (host.indexOf(".") !== -1 && host.indexOf(" ") === -1) value = "https://" + value;
+    }
+    input.value = value;
+  }
+
+  function initSourceForms() {
+    document.addEventListener("submit", function (event) {
+      var form = event.target.closest("[data-normalize-urls]");
+      if (!form) return;
+      form.querySelectorAll('input[inputmode="url"]').forEach(normalizeUrlInput);
+    });
+
+    document.addEventListener("click", function (event) {
+      var trigger = event.target.closest("[data-open-paste]");
+      if (!trigger) return;
+      var fallback = document.getElementById("paste-fallback");
+      if (!fallback) return;
+      fallback.open = true;
+      fallback.scrollIntoView({ behavior: "smooth", block: "center" });
+      var textarea = fallback.querySelector('textarea[name="raw_text"]');
+      if (textarea) setTimeout(function () { textarea.focus(); }, 250);
+    });
+
+    document.addEventListener("htmx:beforeRequest", function (event) {
+      var target = event.detail && event.detail.target;
+      if (target && target.id === "reader-container") target.setAttribute("aria-busy", "true");
+    });
+    document.addEventListener("htmx:afterRequest", function (event) {
+      var target = event.detail && event.detail.target;
+      if (target && target.id === "reader-container") target.removeAttribute("aria-busy");
+    });
+  }
+
   // ------------------------------------------------------ reading progress
 
   function progressBar() {
@@ -382,7 +430,11 @@
 
     form.addEventListener("submit", function (event) {
       event.preventDefault();
-      var payload = { surface: term, policy: option.policy };
+      var payload = {
+        surface: term.normalize("NFC").toLocaleLowerCase("vi-VN"),
+        display: term,
+        policy: option.policy,
+      };
 
       if (option.policy === "replace") {
         var replacement = input.value.trim();
@@ -572,6 +624,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     initChrome();
+    initSourceForms();
     initShortcuts();
     initQuickAdd();
     initFeedback();

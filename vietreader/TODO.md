@@ -1,5 +1,8 @@
 # TODO
 
+> Ghi chú: phần Phase 11 bên dưới là biên bản lịch sử tại thời điểm triển khai. Trạng thái và
+> số lượng test hiện tại phải lấy từ lần chạy CI gần nhất, không từ các con số snapshot cũ.
+
 ## Phase 11 — Trải nghiệm đọc, bộ truyện, ghi chú, giao diện (2026-08-12)
 
 **Trạng thái: XONG, tất cả xanh, NHƯNG CHƯA COMMIT** — 44 file thay đổi trong working tree.

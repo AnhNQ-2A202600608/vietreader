@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from vietreader.api.deps import get_session
-from vietreader.core.dictionary import DictionaryEntry
+from vietreader.core.dictionary import DictionaryEntry, normalize_surface
 from vietreader.core.models import Policy
 from vietreader.db.repositories.dictionary import DictionaryRepo
 
@@ -156,9 +156,10 @@ async def quick_add(
     body: QuickAddRequest, session: Session = Depends(get_session)
 ) -> DictionaryEntryOut:
     repo = DictionaryRepo(session)
+    display = (body.display or body.surface).strip()
     entry = repo.create(
-        surface=body.surface,
-        display=body.display or body.surface,
+        surface=normalize_surface(body.surface.strip()),
+        display=display,
         policy=body.policy,
         replacement=body.replacement,
         candidates=body.candidates,
