@@ -730,6 +730,26 @@ textarea { min-height: 8rem; resize: vertical; line-height: 1.55; }
 
 .reader-head { margin-bottom: var(--s4); }
 .reader-head h2 { margin-bottom: var(--s1); }
+.reader-title-row { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
+.reader-title-row h2 { flex: 1 1 20rem; min-width: 0; }
+.title-edit { position: relative; font-size: var(--t-xs); }
+.title-edit summary { color: var(--accent); cursor: pointer; font-weight: 700; }
+.title-edit form {
+  position: absolute;
+  z-index: 5;
+  right: 0;
+  width: min(28rem, calc(100vw - 2 * var(--s3)));
+  margin-top: var(--s2);
+  padding: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+.title-edit label { display: block; margin-bottom: var(--s1); font-weight: 700; }
+.title-edit-row { display: flex; gap: var(--s2); }
+.title-edit-row input { flex: 1 1 auto; min-width: 0; }
+.save-confirm { color: var(--ok); font-size: var(--t-xs); font-weight: 700; }
 
 .source-link { display: inline-block; font-size: var(--t-xs); color: var(--muted); }
 

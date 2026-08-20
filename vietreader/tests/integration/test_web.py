@@ -81,7 +81,8 @@ async def test_pasted_heading_becomes_title_in_reader_and_library(client: AsyncC
     library = await client.get("/library")
 
     assert "<h2>Chương 51 — Trở lại cố hương</h2>" in read.text
-    assert read.text.count("Chương 51 — Trở lại cố hương") == 2  # data attribute + heading
+    reader_body = read.text.split('<div class="reader-text"', 1)[1].split("</div>", 1)[0]
+    assert "Chương 51 — Trở lại cố hương" not in reader_body
     assert "Chương 51 — Trở lại cố hương" in library.text
     assert "(không có tiêu đề)" not in library.text
 
@@ -335,6 +336,38 @@ async def test_navigation_can_be_set_by_hand(client: AsyncClient) -> None:
     # Và phải còn đó khi mở lại chương.
     reopened = await client.get(f"/reader/{chapter_id}")
     assert "https://truyen.vn/abc/chuong-2" in reopened.text
+
+
+async def test_chapter_title_can_be_renamed_from_reader(client: AsyncClient) -> None:
+    read = await client.post("/read", data={"raw_text": "Một chương không có heading."})
+    chapter_id = read.headers["HX-Push-Url"].rsplit("/", 1)[1]
+    assert "(không có tiêu đề)" in read.text
+
+    renamed = await client.post(
+        f"/reader/{chapter_id}/title",
+        data={"title": "  Chương 18 — Trở về  "},
+    )
+    assert renamed.status_code == 200
+    assert "Chương 18 — Trở về" in renamed.text
+    assert "Đã lưu tên chương" in renamed.text
+
+    reopened = await client.get(f"/reader/{chapter_id}")
+    library = await client.get("/library")
+    assert "Chương 18 — Trở về" in reopened.text
+    assert "Chương 18 — Trở về" in library.text
+
+
+async def test_chapter_title_rejects_blank_and_unknown_chapter(client: AsyncClient) -> None:
+    read = await client.post("/read", data={"raw_text": "Nội dung.", "title": "Tên cũ"})
+    chapter_id = read.headers["HX-Push-Url"].rsplit("/", 1)[1]
+
+    blank = await client.post(f"/reader/{chapter_id}/title", data={"title": "   "})
+    assert blank.status_code == 200
+    assert "Tên chương không được để trống" in blank.text
+    assert "Tên cũ" in blank.text
+
+    missing = await client.post("/reader/999999/title", data={"title": "Tên mới"})
+    assert missing.status_code == 404
 
 
 async def test_navigation_normalizes_missing_scheme_and_keeps_invalid_form_visible(

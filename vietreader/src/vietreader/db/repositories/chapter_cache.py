@@ -7,7 +7,7 @@ import datetime as dt
 import hashlib
 from dataclasses import dataclass
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from vietreader.core.series import chapter_number, infer_chapter_title
@@ -152,7 +152,13 @@ class ChapterCacheRepo:
     def set_title(self, chapter_cache_id: int, title: str) -> None:
         row = self._session.get(ChapterCacheRow, chapter_cache_id)
         if row is not None:
-            row.title = title
+            # A dictionary edit creates a new cache variant for the same raw chapter. Rename
+            # every variant so an older row cannot bring the stale/empty title back later.
+            self._session.execute(
+                update(ChapterCacheRow)
+                .where(ChapterCacheRow.raw_hash == row.raw_hash)
+                .values(title=title)
+            )
             self._session.flush()
 
     def set_series(self, chapter_cache_id: int, series_id: int | None) -> None:

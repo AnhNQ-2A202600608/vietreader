@@ -23,7 +23,26 @@
     {% if series %}
     <p class="eyebrow"><a href="/series/{{ series.id }}">{{ series.title }}</a></p>
     {% endif %}
-    <h2>{{ title or "(không có tiêu đề)" }}</h2>
+    <div class="reader-title-row">
+      <h2>{{ title or "(không có tiêu đề)" }}</h2>
+      {% if id %}
+      <details class="title-edit">
+        <summary aria-label="Đổi tên chương">Đổi tên</summary>
+        <form hx-post="/reader/{{ id }}/title"
+              hx-target="#reader-container" hx-swap="innerHTML">
+          {% if title_error %}<p class="form-error" role="alert">{{ title_error }}</p>{% endif %}
+          <label for="chapter-title-{{ id }}">Tên chương</label>
+          <div class="title-edit-row">
+            <input id="chapter-title-{{ id }}" name="title" type="text" maxlength="300"
+                   value="{{ title_value | default(title or '') }}"
+                   placeholder="Ví dụ: Chương 12 — Gặp lại" required>
+            <button type="submit" class="primary">Lưu</button>
+          </div>
+        </form>
+      </details>
+      {% endif %}
+    </div>
+    {% if title_saved %}<p class="save-confirm" role="status">Đã lưu tên chương.</p>{% endif %}
     {% if url %}
     <a class="source-link" href="{{ url }}" target="_blank" rel="noopener noreferrer"
        title="Mở trang truyện gốc">Xem trang nguồn ↗</a>

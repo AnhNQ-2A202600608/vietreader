@@ -502,6 +502,41 @@ async def set_chapter_navigation(
     )
 
 
+@router.post("/reader/{chapter_id}/title", response_class=HTMLResponse)
+async def set_chapter_title(
+    request: Request,
+    chapter_id: int,
+    title: str = Form(""),
+    session=Depends(get_session),  # type: ignore[no-untyped-def]
+) -> HTMLResponse:
+    """Let the reader repair legacy/pasted chapters whose source contains no reliable title."""
+    repo = ChapterCacheRepo(session)
+    cached = repo.get_by_id(chapter_id)
+    if cached is None:
+        raise HTTPException(status_code=404, detail=f"chapter {chapter_id} not found in cache")
+
+    cleaned_title = " ".join(title.split())
+    series = SeriesRepo(session).get(cached.series_id) if cached.series_id else None
+    if not cleaned_title:
+        context = _cached_reader_context(request, cached, series)
+        context.update(title_error="Tên chương không được để trống.", title_value=title)
+        return templates.TemplateResponse(request, "_reader.html", context)
+    if len(cleaned_title) > 300:
+        context = _cached_reader_context(request, cached, series)
+        context.update(
+            title_error="Tên chương tối đa 300 ký tự.",
+            title_value=title,
+        )
+        return templates.TemplateResponse(request, "_reader.html", context)
+
+    repo.set_title(chapter_id, cleaned_title)
+    session.commit()
+    refreshed = repo.get_by_id(chapter_id)
+    context = _cached_reader_context(request, refreshed, series)
+    context["title_saved"] = True
+    return templates.TemplateResponse(request, "_reader.html", context)
+
+
 @router.post("/reader/{chapter_id}/reprocess", response_class=HTMLResponse)
 async def reprocess_chapter(
     request: Request,
